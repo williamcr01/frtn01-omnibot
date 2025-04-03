@@ -14,13 +14,14 @@ with Connection(HOST, PORT) as bot:
         t0 = time()
 
         # Go one way for 3 seconds
-        while time() < t0 + 3:
+        while True:
 
             # set speeds
-            bot.set_speeds([vset,vset,vset])
+            #bot.set_speeds([vset,vset,vset])
             
             # print position
             print('x:'+str(bot.get_x()))
             print('y:'+str(bot.get_y()))
+            print('theta:'+str(bot.get_theta()))
 
-            sleep(0.1)
+            sleep(1)
