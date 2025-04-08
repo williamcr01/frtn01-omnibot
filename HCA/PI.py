@@ -8,21 +8,21 @@ class PI():
         self.e = 0.0
         self.p = PIParameters(K=1.0, Ti=0.0, Tr=10.0, Beta=1.0, H=1.0, integrator_on=True)
 
-    def calculateOutput(self, y, yref):
+    def calculate_output(self, y, yref):
         self.e = yref - y;
         self.v = self.p.K * (self.p.Beta * yref - y) + self.I;
         return self.v;
 
-    def updateState(self, u):
+    def update_state(self, u):
         if self.p.integrator_on:
             self.I = self.I + (self.p.K * self.p.H / self.p.Ti) * self.e + (self.p.H / self.p.Tr) * (u - self.v);
         else:
             self.I = 0.0;
     
-    def getHMillis(self):
+    def get_H_millis(self):
         return self.p.H * 1000
 
-    def setParameters(self, PIparams):
+    def set_parameters(self, PIparams):
         self.p = PIparams.clone()
         if not self.p.integrator_on:
            self.I = 0.0
