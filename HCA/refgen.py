@@ -1,29 +1,35 @@
 import threading
+import time
 
-class RefGen():
-    # Reference generator to generate a signal for moving in a straight line
-    def __init__(self):
-        self.xCurr = 0.0
-        self.yCurr = 0.0
-        self.xTarget = 0.0
-        self.yTarget = 0.0
+class RefGen(threading.Thread):
+    # RefGen för att röra sig i en rak linje
+    # Måste ändras för att röra sig i en åtta tror jag
+    def __init__(self, bot):
+        super().__init__()
+        self.bot = bot
+        self.x_target = 0.0
+        self.y_target = 0.0
+        self.running = False
+        self.x_ref = None
+        self.y_ref = None
+        self.h = 0.1 # Sampling time seconds
 
     def set_target(self, newXTarget, newYTarget):
-        self.xTarget = newXTarget
-        self.yTarget = newYTarget
-
-    def set_current(self, newXCurr, newYCurr):
-        self.xCurr = newXCurr
-        self.yCurr = newYCurr
+        self.x_target = newXTarget
+        self.y_target = newYTarget
 
     def get_ref(self):
-        return self.xRef, self.yRef
+        pass
 
     def run(self):
-        while True:
-            #TODO: få botten att feeda sin position hela tiden
-            dx = self.xTarget - self.xCurr
-            dy = self.yTarget - self.yCurr
+        self.x_ref = self.bot.get_x()
+        self.y_ref = self.bot.get_y()
 
-    def start(self):
-        pass
+        alpha = 0.1  # Smoothing factor: 0 = no movement, 1 = jump instantly
+
+        while self.running:
+            # Update reference
+            self.x_ref += alpha * (self.xTarget - self.x_ref)
+            self.y_ref += alpha * (self.yTarget - self.y_ref)
+
+            time.sleep(self.h)

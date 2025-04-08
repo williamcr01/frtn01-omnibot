@@ -8,7 +8,7 @@ class PIParameters():
         self.Tr = Tr
         self.Beta = Beta
         self.H = H
-        self.integratorOn = integratorOn
+        self.integrator_on = integratorOn
 
     def clone(self):
         return copy.deepcopy(self)

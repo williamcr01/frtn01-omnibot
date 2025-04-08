@@ -6,7 +6,7 @@ class PI():
         self.I = 0.0
         self.v = 0.0
         self.e = 0.0
-        self.p = PIParameters(K=1.0, Ti=0.0, Tr=10.0, Beta=1.0, H=1.0, integratorOn=True)
+        self.p = PIParameters(K=1.0, Ti=0.0, Tr=10.0, Beta=1.0, H=1.0, integrator_on=True)
 
     def calculateOutput(self, y, yref):
         self.e = yref - y;
@@ -14,7 +14,7 @@ class PI():
         return self.v;
 
     def updateState(self, u):
-        if self.p.integratorOn:
+        if self.p.integrator_on:
             self.I = self.I + (self.p.K * self.p.H / self.p.Ti) * self.e + (self.p.H / self.p.Tr) * (u - self.v);
         else:
             self.I = 0.0;
@@ -24,7 +24,7 @@ class PI():
 
     def setParameters(self, PIparams):
         self.p = PIparams.clone()
-        if not self.p.integratorOn:
+        if not self.p.integrator_on:
            self.I = 0.0
            
 
