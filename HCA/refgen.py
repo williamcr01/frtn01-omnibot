@@ -19,7 +19,10 @@ class RefGen(threading.Thread):
         self.y_target = newYTarget
 
     def get_ref(self):
-        pass
+        return self.x_ref, self.y_ref
+    
+    def set_running(self):
+        self.running = not self.running
 
     def run(self):
         self.x_ref = self.bot.get_x()
