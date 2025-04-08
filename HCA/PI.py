@@ -1,4 +1,4 @@
-import PIparameters
+import HCA.PIParameters as PIParameters
 
 class PI():
 
@@ -6,7 +6,7 @@ class PI():
         self.I = 0.0
         self.v = 0.0
         self.e = 0.0
-        self.p = PIparameters(K=1.0, Ti=0.0, Tr=10.0, Beta=1.0, H=1.0, integratorOn=True)
+        self.p = PIParameters(K=1.0, Ti=0.0, Tr=10.0, Beta=1.0, H=1.0, integratorOn=True)
 
     def calculateOutput(self, y, yref):
         self.e = yref - y;
