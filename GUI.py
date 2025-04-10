@@ -2,6 +2,7 @@ import pygame
 import threading
 import math
 from RefGen import RefGen
+import numpy as np
 
 class GUI(threading.Thread):
     def __init__(self, width=800, height=600, refgen=None):
@@ -29,7 +30,7 @@ class GUI(threading.Thread):
         self.curve_points_pos = []
         self.curve_points_neg = []
         self.last_a = None
-        self.size_factor = 1.0  # Default size factor
+        self.size_factor = 0.5  # Default size factor
         self.refPos = (0, 0)  # Initialize reference position
 
 
@@ -81,7 +82,9 @@ class GUI(threading.Thread):
 
                 self.draw_cartesian_curve(self.size_factor)  # Draw the curve based on the size factor
 
-                self.update_ref_pos(0, 0, self.size_factor)  # Update reference position based on input values
+                refvect = self.refgen.getRefPoints()  # Get reference points from Refgen
+
+                self.update_ref_pos(refvect[0], refvect[1], self.size_factor)  # Update reference position based on input values
                 pygame.draw.circle(self.screen, self.black, self.refPos, 5)  # Draw reference position
 
                 pygame.draw.rect(self.screen, self.gray, self.varScreen)  # Draw varScreen rectangle
@@ -131,51 +134,94 @@ class GUI(threading.Thread):
             return
 
         if a != self.last_a:
-            self.curve_points_pos = []
-            self.curve_points_neg = []
+            self.curve_points_pos.clear()
+            self.curve_points_neg.clear()
             self.last_a = a
+
+            # Clear old ref points
+            self.refXpos.clear()
+            self.refXneg.clear()
+            self.refY.clear()
 
             y_min = -abs(a)
             y_max = abs(a)
-            num_points = 1000
+            num_raw_points = 1000
 
-            origin_x = self.posScreen.centerx
-            origin_y = self.posScreen.centery
-            graph_width = self.posScreen.width
-            graph_height = self.posScreen.height
+            raw_x_pos = []
+            raw_x_neg = []
+            raw_y = []
 
-            for i in range(num_points):
-                y = y_min + (y_max - y_min) * i / (num_points - 1)
-
-                self.refY.append(y)
-
+            for i in range(num_raw_points):
+                y = y_min + (y_max - y_min) * i / (num_raw_points - 1)
                 try:
                     x_squared = y**2 - (y**4) / (a**2)
                     if x_squared < 0:
                         continue
-
                     x = math.sqrt(x_squared)
-
-                    self.refXpos.append(x)
-                    self.refXneg.append(-x)
-
-
-                    py = origin_y + y * (graph_width / (y_max - y_min))
-                    px_pos = origin_x - x * (graph_height / (y_max - y_min))
-                    px_neg = origin_x + x * (graph_height / (y_max - y_min))
-
-                    self.curve_points_pos.append((px_pos, py))
-                    self.curve_points_neg.append((px_neg, py))
+                    raw_y.append(y)
+                    raw_x_pos.append(x)
+                    raw_x_neg.append(-x)
                 except:
                     continue
 
-            self.refgen.setRefPoints(self.refXpos, self.refXneg, self.refY)  # Update reference points in Refgen
-            
+            # Resample for equal speed
+            def resample_curve(x_list, y_list, num_points=500):
+                distances = [0]
+                for i in range(1, len(x_list)):
+                    dx = x_list[i] - x_list[i - 1]
+                    dy = y_list[i] - y_list[i - 1]
+                    dist = math.hypot(dx, dy)
+                    distances.append(distances[-1] + dist)
 
-        
-        # Draw cached points every frame
-        pygame.draw.lines(self.screen, self.blue, False, self.curve_points_pos, 2)
-        pygame.draw.lines(self.screen, self.blue, False, self.curve_points_neg, 2)
+                total_length = distances[-1]
+                step = total_length / (num_points - 1)
+                target_lengths = [i * step for i in range(num_points)]
+
+                resampled_x, resampled_y = [], []
+                j = 0
+                for t_len in target_lengths:
+                    while j < len(distances) - 1 and distances[j + 1] < t_len:
+                        j += 1
+                    ratio = (t_len - distances[j]) / (distances[j + 1] - distances[j])
+                    x_interp = x_list[j] + ratio * (x_list[j + 1] - x_list[j])
+                    y_interp = y_list[j] + ratio * (y_list[j + 1] - y_list[j])
+                    resampled_x.append(x_interp)
+                    resampled_y.append(y_interp)
+
+                return resampled_x, resampled_y
+
+            resXpos, resY = resample_curve(raw_x_pos, raw_y)
+            resXneg, _ = resample_curve(raw_x_neg, raw_y)
+
+            self.refXpos = resXpos
+            self.refXneg = resXneg
+            self.refY = resY
+
+            # Convert to screen coords
+            origin_x = self.posScreen.centerx
+            origin_y = self.posScreen.centery
+            scale_x = self.posScreen.width / (abs(a) * 2)  # x -> width
+            scale_y = self.posScreen.height / (abs(a) * 2)  # y -> height
+
+            for x, y in zip(resXpos, resY):
+                px = origin_x + x * scale_x  # <-- changed sign to +
+                py = origin_y - y * scale_y  # <-- also fixed y direction
+                self.curve_points_pos.append((px, py))
+
+            for x, y in zip(resXneg, resY):
+                px = origin_x + x * scale_x  # this stays same if x is negative
+                py = origin_y - y * scale_y
+                self.curve_points_neg.append((px, py))
+
+            # Send to RefGen: 4 segments for looping
+            self.refgen.setRefPoints(self.refXpos, self.refXneg, self.refY)
+
+        # Draw
+        if len(self.curve_points_pos) > 1:
+            pygame.draw.lines(self.screen, self.blue, False, self.curve_points_pos, 2)
+        if len(self.curve_points_neg) > 1:
+            pygame.draw.lines(self.screen, self.blue, False, self.curve_points_neg, 2)
+
 
     def update_ref_pos(self, x, y, size_factor):
         """Update reference position based on input values (x, y)."""

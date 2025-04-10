@@ -5,7 +5,7 @@ from omnibot.tcp import Connection
 # Robot Parameters
 r = 0.028*0.45/18  # Wheel radius (meters)
 R = 0.16   # Distance from center to wheels (meters)
-Kp = 1.0  # Proportional control gain
+Kp = 0.005  # Proportional control gain
 
 # Inverse Kinematics Matrix Function
 def inverse_kinematics(theta, xdot, ydot, thetadot):
@@ -60,4 +60,5 @@ if __name__ == "__main__":
             
             print("Wheel Speeds:", wheel_speeds)
             print(f"x: {x}, y: {y}, theta: {theta}")
+            time.sleep(0.2)
             
