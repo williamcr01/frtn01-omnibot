@@ -1,7 +1,7 @@
 from omnibot.tcp import Connection
 from time import time, sleep
-import refgen
-import regul
+import refgen as refgen_module
+import regul as regul_module
 
 # Insert suitable IP-adress
 HOST = "192.168.0.105"
@@ -15,23 +15,27 @@ with Connection(HOST, PORT) as bot:
         # Record start time
         t0 = time()
 
-        refgen = refgen.RefGen(bot)
-        regul = regul.Regul(bot)
+        refgen = refgen_module.RefGen(bot)
+        regul = regul_module.Regul(bot)
 
         regul.set_refgen(refgen)
 
         refgen.start()
         regul.start()
 
+        print("threads started")
+
+        sleep(5)
+
         # Go one way for 3 seconds
         while True:
-
+            print("connected")
             # set speeds
             #bot.set_speeds([vset,vset,vset])
             
             # print position
-            print('x:'+str(bot.get_x()))
-            print('y:'+str(bot.get_y()))
-            print('theta:'+str(bot.get_theta()))
+            #print('x:'+str(bot.get_x()))
+            #print('y:'+str(bot.get_y()))
+            #print('theta:'+str(bot.get_theta()))
 
             sleep(1)
