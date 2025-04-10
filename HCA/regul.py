@@ -49,7 +49,9 @@ class Regul(threading.Thread):
         return wheel_speeds
     
     def run(self):
+        print("regul thread started")
         while self.should_run:
+            print("regul thread running")
             theta = self.bot.get_theta()
             x_ref, y_ref = self.refgen.get_ref()
             x_dot = self.PI_x.calculate_output(self.bot.get_x(), x_ref)
@@ -68,6 +70,7 @@ class Regul(threading.Thread):
     def write_output(self, wheel_speeds):
         for i, v in enumerate(wheel_speeds):
             self.bot.set_speed(i, round(v))
+            print(v)
 
     def read_input(self):
         return self.bot.get_x(), self.bot.get_y()
