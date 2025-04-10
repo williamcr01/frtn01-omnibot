@@ -1,13 +1,18 @@
 import pygame
 import threading
 import math
+from RefGen import RefGen
 
-class GUI:
-    def __init__(self, width=800, height=600):
+class GUI(threading.Thread):
+    def __init__(self, width=800, height=600, refgen=None):
         pygame.init()
         self.width = width
         self.height = height
         self.running = False
+
+        self.refgen = refgen  # Store the reference to refgen
+
+
 
         self.screen = pygame.display.set_mode((self.width, self.height))
         pygame.display.set_caption("OmniBot GUI")
@@ -26,6 +31,12 @@ class GUI:
         self.last_a = None
         self.size_factor = 1.0  # Default size factor
         self.refPos = (0, 0)  # Initialize reference position
+
+
+        self.refY = []
+
+        self.refXpos = []
+        self.refXneg = []
 
         #Variables-Screen attributes
         self.varScreen = pygame.Rect(5, self.height*2/3+5, self.width*2/5-5, self.height*1/3-10)  # Example position for the rectangle
@@ -135,12 +146,19 @@ class GUI:
 
             for i in range(num_points):
                 y = y_min + (y_max - y_min) * i / (num_points - 1)
+
+                self.refY.append(y)
+
                 try:
                     x_squared = y**2 - (y**4) / (a**2)
                     if x_squared < 0:
                         continue
 
                     x = math.sqrt(x_squared)
+
+                    self.refXpos.append(x)
+                    self.refXneg.append(-x)
+
 
                     py = origin_y + y * (graph_width / (y_max - y_min))
                     px_pos = origin_x - x * (graph_height / (y_max - y_min))
@@ -151,6 +169,10 @@ class GUI:
                 except:
                     continue
 
+            self.refgen.setRefPoints(self.refXpos, self.refXneg, self.refY)  # Update reference points in Refgen
+            
+
+        
         # Draw cached points every frame
         pygame.draw.lines(self.screen, self.blue, False, self.curve_points_pos, 2)
         pygame.draw.lines(self.screen, self.blue, False, self.curve_points_neg, 2)

@@ -2,6 +2,7 @@ import pygame
 import time
 
 from GUI import GUI
+from RefGen import RefGen
 
 def handle_events(gui):
     for event in pygame.event.get():
@@ -30,8 +31,14 @@ def handle_events(gui):
                                 box["color"] = gui.white
 
 def main():
-    gui = GUI()
+    
+    refgen = RefGen()
+    gui = GUI(refgen=refgen)
+    
+    refgen.start()
     gui_thread = gui.start()
+    
+
 
     while gui.running:
         handle_events(gui)
