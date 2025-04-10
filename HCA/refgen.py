@@ -12,7 +12,7 @@ class RefGen(threading.Thread):
         self.running = False
         self.x_ref = None
         self.y_ref = None
-        self.h = 0.1 # Sampling time seconds
+        self.h = 0.05 # Sampling time seconds
 
     def set_target(self, newXTarget, newYTarget):
         self.x_target = newXTarget
@@ -25,6 +25,7 @@ class RefGen(threading.Thread):
         self.running = not self.running
 
     def run(self):
+        self.set_running()
         self.x_ref = self.bot.get_x()
         self.y_ref = self.bot.get_y()
 

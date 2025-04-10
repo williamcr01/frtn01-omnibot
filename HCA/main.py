@@ -1,5 +1,7 @@
 from omnibot.tcp import Connection
 from time import time, sleep
+import refgen
+import regul
 
 # Insert suitable IP-adress
 HOST = "192.168.0.105"
@@ -12,6 +14,14 @@ with Connection(HOST, PORT) as bot:
         
         # Record start time
         t0 = time()
+
+        refgen = refgen.RefGen(bot)
+        regul = regul.Regul(bot)
+
+        regul.set_refgen(refgen)
+
+        refgen.start()
+        regul.start()
 
         # Go one way for 3 seconds
         while True:
