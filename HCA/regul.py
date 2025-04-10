@@ -51,7 +51,7 @@ class Regul(threading.Thread):
     def run(self):
         while self.should_run:
             theta = self.bot.get_theta()
-            x_ref, y_ref = refgen.get_ref()
+            x_ref, y_ref = self.refgen.get_ref()
             x_dot = self.PI_x.calculate_output(self.bot.get_x(), x_ref)
             y_dot = self.PI_y.calculate_output(self.bot.get_y(), y_ref)
             theta_dot = self.PI_theta.calculate_output(theta, 0)

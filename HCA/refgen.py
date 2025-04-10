@@ -33,7 +33,7 @@ class RefGen(threading.Thread):
 
         while self.running:
             # Update reference
-            self.x_ref += alpha * (self.xTarget - self.x_ref)
-            self.y_ref += alpha * (self.yTarget - self.y_ref)
+            self.x_ref += alpha * (self.x_target - self.x_ref)
+            self.y_ref += alpha * (self.y_target - self.y_ref)  
 
             time.sleep(self.h)
