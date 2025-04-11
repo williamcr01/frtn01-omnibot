@@ -5,11 +5,12 @@ from RefGen import RefGen
 import numpy as np
 
 class GUI(threading.Thread):
-    def __init__(self, width=800, height=600, refgen=None):
+    def __init__(self, width=1300, height=750, refgen=None):
         pygame.init()
         self.width = width
         self.height = height
         self.running = False
+        self.enterPressed = True
 
         self.refgen = refgen  # Store the reference to refgen
 
@@ -23,13 +24,12 @@ class GUI(threading.Thread):
         self.white = (255, 255, 255)
         self.gray = (200, 200, 200)
         self.blue = (100, 100, 255)
-        self.font = pygame.font.Font(None, 32)
+        self.font = pygame.font.Font(None, 24)
 
         #Position-Screen attributes
-        self.posScreen = pygame.Rect(5, 5, self.width*2/5-5, self.height*2/3-5)  # Example position for the rectangle
+        self.posScreen = pygame.Rect(5, 5, 500, 500)  # Example position for the rectangle
         self.curve_points_pos = []
         self.curve_points_neg = []
-        self.last_a = None
         self.size_factor = 0.5  # Default size factor
         self.refPos = (0, 0)  # Initialize reference position
 
@@ -39,38 +39,56 @@ class GUI(threading.Thread):
         self.refXpos = []
         self.refXneg = []
 
+        self.meters_to_pixels_x = self.posScreen.width  # 1 meter wide
+        self.meters_to_pixels_y = self.posScreen.height  # 1 meter high§
+
         #Variables-Screen attributes
-        self.varScreen = pygame.Rect(5, self.height*2/3+5, self.width*2/5-5, self.height*1/3-10)  # Example position for the rectangle
+        self.varScreen = pygame.Rect(5, 500+10, 500, 250-15)  # Example position for the rectangle
+        self.inputVector = [1,0,0,0.02]
         self.input_boxes = [
-            {
+    {
         "label": "Size factor:",
-        "rect": pygame.Rect(self.varScreen.left + 150, int(self.varScreen.top + self.varScreen.height/4 * 0 + 10), 140, 32),
+        "rect": pygame.Rect(self.varScreen.left + 180, int(self.varScreen.top + self.varScreen.height/4 * 0 + 10), 140, 32),
+        "color": self.white,
+        "text": "1",
+        "active": False
+    },
+    {
+        "label": "X-origin offset:",
+        "rect": pygame.Rect(self.varScreen.left + 180, int(self.varScreen.top + self.varScreen.height/4 * 1 + 10), 140, 32),
         "color": self.white,
         "text": "0",
         "active": False
     },
     {
-        "label": "X-position:",
-        "rect": pygame.Rect(self.varScreen.left + 150, int(self.varScreen.top + self.varScreen.height/4 * 1 + 10), 140, 32),
-        "color": self.white,
-        "text": "0",
-        "active": False
-    },
-    {
-        "label": "Y-postion:",
-        "rect": pygame.Rect(self.varScreen.left + 150, int(self.varScreen.top + self.varScreen.height/4 * 2 + 10), 140, 32),
+        "label": "Y-origin offset:",
+        "rect": pygame.Rect(self.varScreen.left + 180, int(self.varScreen.top + self.varScreen.height/4 * 2 + 10), 140, 32),
         "color": self.white,
         "text": "0",
         "active": False
     },
     {
         "label": "Interval period:",
-        "rect": pygame.Rect(self.varScreen.left + 150, int(self.varScreen.top + self.varScreen.height/4 * 3 + 10), 140, 32),
+        "rect": pygame.Rect(self.varScreen.left + 180, int(self.varScreen.top + self.varScreen.height/4 * 3 + 10), 140, 32),
         "color": self.white,
         "text": "0",
         "active": False
     },
-        ]
+]
+        self.toggle_button = {
+            "rect": pygame.Rect(self.varScreen.right - 100, self.varScreen.top + 20, 80, 40),
+            "on": False,
+            "color_on": (0, 200, 0),
+            "color_off": (200, 0, 0),
+            "label": "OFF",
+        }
+
+        self.restart_button = {
+            "rect": pygame.Rect(self.varScreen.right - 100, self.varScreen.top + 80, 80, 40),
+            "color": self.gray,
+            "label": "Restart"
+        }
+
 
     def run(self):
         self.running = True
@@ -80,7 +98,7 @@ class GUI(threading.Thread):
 
                 pygame.draw.rect(self.screen, self.gray, self.posScreen)  # Draw posScreen rectangle
 
-                self.draw_cartesian_curve(self.size_factor)  # Draw the curve based on the size factor
+                self.draw_cartesian_curve(self.inputVector[0])  # Draw the curve based on the size factor
 
                 refvect = self.refgen.getRefPoints()  # Get reference points from Refgen
 
@@ -104,6 +122,23 @@ class GUI(threading.Thread):
                     text_rect = text_surface.get_rect(center=box["rect"].center)
                     self.screen.blit(text_surface, text_rect)
 
+                
+                # Draw toggle button
+                toggle = self.toggle_button
+                color = toggle["color_on"] if toggle["on"] else toggle["color_off"]
+                pygame.draw.rect(self.screen, color, toggle["rect"])
+                label = "ON" if toggle["on"] else "OFF"
+                label_surface = self.font.render(label, True, self.white)
+                label_rect = label_surface.get_rect(center=toggle["rect"].center)
+                self.screen.blit(label_surface, label_rect)
+
+                # Draw Restart button
+                pygame.draw.rect(self.screen, self.restart_button["color"], self.restart_button["rect"])
+                restart_label = self.font.render(self.restart_button["label"], True, self.black)
+                label_rect = restart_label.get_rect(center=self.restart_button["rect"].center)
+                self.screen.blit(restart_label, label_rect)
+
+
                 pygame.display.flip() # Update the display
             except Exception as e:
                 print(f"Error in run loop: {e}")
@@ -118,25 +153,27 @@ class GUI(threading.Thread):
     
     def get_inputs(self):
         """Returns a dictionary of label: value pairs (converted to float where possible)."""
-        result = {}
+        i = 0
         for box in self.input_boxes:
-            label = box["label"]
             text = box["text"]
             try:
                 value = float(text)
             except ValueError:
                 value = text  # Return raw string if not a valid number
-            result[label] = value
-        return result
+            self.inputVector[i] = value
+            i += 1
+        self.enterPressed = True
+        return self.inputVector
     
     def draw_cartesian_curve(self, a=1.0):
         if a == 0:
             return
 
-        if a != self.last_a:
+        if self.enterPressed:
             self.curve_points_pos.clear()
             self.curve_points_neg.clear()
-            self.last_a = a
+
+            self.enterPressed = False
 
             # Clear old ref points
             self.refXpos.clear()
@@ -158,9 +195,9 @@ class GUI(threading.Thread):
                     if x_squared < 0:
                         continue
                     x = math.sqrt(x_squared)
-                    raw_y.append(y)
-                    raw_x_pos.append(x)
-                    raw_x_neg.append(-x)
+                    raw_y.append(y + self.inputVector[2])
+                    raw_x_pos.append(x + self.inputVector[1])
+                    raw_x_neg.append(-x + self.inputVector[1])
                 except:
                     continue
 
@@ -200,8 +237,8 @@ class GUI(threading.Thread):
             # Convert to screen coords
             origin_x = self.posScreen.centerx
             origin_y = self.posScreen.centery
-            scale_x = self.posScreen.width / (abs(a) * 2)  # x -> width
-            scale_y = self.posScreen.height / (abs(a) * 2)  # y -> height
+            scale_x = self.meters_to_pixels_x / 2
+            scale_y = self.meters_to_pixels_y / 2
 
             for x, y in zip(resXpos, resY):
                 px = origin_x + x * scale_x  # <-- changed sign to +
@@ -223,11 +260,13 @@ class GUI(threading.Thread):
             pygame.draw.lines(self.screen, self.blue, False, self.curve_points_neg, 2)
 
 
-    def update_ref_pos(self, x, y, size_factor):
-        """Update reference position based on input values (x, y)."""
-        reference_x = self.posScreen.centerx + x * (self.posScreen.width / (abs(size_factor) * 2))
-        reference_y = self.posScreen.centery - y * (self.posScreen.height / (abs(size_factor) * 2))
-        self.refPos = (int(reference_x), int(reference_y))  # Update reference position
+    def update_ref_pos(self, x, y, a):
+        origin_x = self.posScreen.centerx
+        origin_y = self.posScreen.centery
+        self.refPos = (
+            int(origin_x + x * self.meters_to_pixels_x / 2),
+            int(origin_y - y * self.meters_to_pixels_y / 2)
+        )
 
 
             
