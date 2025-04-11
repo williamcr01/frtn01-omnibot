@@ -8,7 +8,7 @@ PORT = 9998
 with Connection(HOST, PORT) as bot:
         
         # Target speed for servos
-        vset = 100
+        vset = 50
         
         # Record start time
         t0 = time()

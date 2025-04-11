@@ -18,6 +18,7 @@ def handle_events(gui,refgen):
                             if box["active"]:
                                 if event.key == pygame.K_RETURN:
                                     values = gui.get_inputs()
+                                    refgen.restart()
                                     print("All current values:", values)
                                 elif event.key == pygame.K_BACKSPACE:
                                     box["text"] = box["text"][:-1]
@@ -32,6 +33,15 @@ def handle_events(gui,refgen):
                             else:
                                 box["active"] = False
                                 box["color"] = gui.white
+                        # Check if toggle button was clicked
+                        if gui.toggle_button["rect"].collidepoint(event.pos):
+                            gui.toggle_button["on"] = not gui.toggle_button["on"]
+                            gui.toggle_button["label"] = "ON" if gui.toggle_button["on"] else "OFF"
+                            refgen.OnOffInput()  # Call the OnOffInput method in RefGen
+
+                        # Handle Restart button
+                        if gui.restart_button["rect"].collidepoint(event.pos):
+                            refgen.restart()
 
 def main():
     

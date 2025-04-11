@@ -8,7 +8,7 @@ class RefGen(threading.Thread):
         self.refXpos = []
         self.refXneg = []
         self.refY = []  
-        self.currentIndex = 0
+        self.currentIndex = 250
 
         self.refXValue = 0
         self.refYValue = 0
@@ -21,10 +21,20 @@ class RefGen(threading.Thread):
         self.refXpos = refXpos
         self.refXneg = refXneg
         self.refY = refY
-        self.updateFlag = True
 
     def getRefPoints(self):
         return [self.refXValue, self.refYValue]
+    
+    def OnOffInput(self):
+        if(self.updateFlag):
+            self.updateFlag = False
+        else:
+            self.updateFlag = True
+
+    def restart(self):
+        self.currentIndex = 250
+        self.refXValue = self.refXpos[250]
+        self.refYValue = self.refY[250]
 
     def run(self):
         while self.running:
@@ -57,7 +67,7 @@ class RefGen(threading.Thread):
 
                 print(f"RefX: {self.refXValue}, RefY: {self.refYValue}")
 
-                time.sleep(0.01)
+                time.sleep(0.03)
     def stop(self):
         self.running = False
 
