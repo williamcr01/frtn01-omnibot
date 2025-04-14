@@ -15,9 +15,10 @@ with Connection(HOST, PORT) as bot:
         # Record start time
         t0 = time()
 
-        refgen = refgen_module.RefGen(bot)
+        refgen = refgen_module.RefGen()
         regul = regul_module.Regul(bot)
-
+        
+        refgen.set_ref(bot.get_x(), bot.get_y())
         regul.set_refgen(refgen)
 
         refgen.start()
@@ -34,8 +35,8 @@ with Connection(HOST, PORT) as bot:
             #bot.set_speeds([vset,vset,vset])
             
             # print position
-            #print('x:'+str(bot.get_x()))
-            #print('y:'+str(bot.get_y()))
-            #print('theta:'+str(bot.get_theta()))
+            print('x:'+str(bot.get_x()))
+            print('y:'+str(bot.get_y()))
+            print('theta:'+str(bot.get_theta()))
 
             sleep(1)

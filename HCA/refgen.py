@@ -4,9 +4,8 @@ import time
 class RefGen(threading.Thread):
     # RefGen för att röra sig i en rak linje
     # Måste ändras för att röra sig i en åtta tror jag
-    def __init__(self, bot):
+    def __init__(self):
         super().__init__()
-        self.bot = bot
         self.x_target = 0.0
         self.y_target = 0.0
         self.running = True
@@ -18,6 +17,10 @@ class RefGen(threading.Thread):
         self.x_target = newXTarget
         self.y_target = newYTarget
 
+    def set_ref(self, x_ref, y_ref):
+        self.x_ref = x_ref
+        self.y_ref = y_ref
+
     def get_ref(self):
         return self.x_ref, self.y_ref
     
@@ -27,8 +30,8 @@ class RefGen(threading.Thread):
     def run(self):
         print("refgen thread started")
         #self.set_running()
-        self.x_ref = self.bot.get_x()
-        self.y_ref = self.bot.get_y()
+        #self.x_ref = self.bot.get_x()
+        #self.y_ref = self.bot.get_y()
 
         alpha = 0.1  # Smoothing factor: 0 = no movement, 1 = jump instantly
 

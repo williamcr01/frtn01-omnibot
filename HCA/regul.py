@@ -1,7 +1,6 @@
 import numpy as np
 import time
 import PI
-import refgen
 import threading
 
 class Regul(threading.Thread):
