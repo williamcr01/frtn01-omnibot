@@ -12,7 +12,8 @@ def harmonic_array(x, t, T, H):
 
         for h in range(H + 1):
             exponential = np.exp(-1j * h * omega * tau)
-            integral = np.trapz(x_segment * exponential, tau)
+            #integral = np.trapz(x_segment * exponential, tau)
+            integral = np.trapezoid(x_segment * exponential, tau)
             X_harmonic[h, k] = (1 / T) * integral
 
     return X_harmonic
