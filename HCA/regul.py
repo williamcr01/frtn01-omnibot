@@ -38,6 +38,7 @@ class Regul(threading.Thread):
         return v
     
     def inverse_kinematics(self, theta, xdot, ydot, thetadot):
+        #theta = theta * np.pi / 180
         J_inv = (1/self.r) * np.array([
             [-np.sin(theta), np.cos(theta), self.R],
             [-np.sin(theta + 2*np.pi/3), np.cos(theta + 2*np.pi/3), self.R],
@@ -52,6 +53,7 @@ class Regul(threading.Thread):
         while self.should_run:
             print("regul thread running")
             theta = self.bot.get_theta()
+            theta = theta * np.pi / 180
             x_ref, y_ref = self.refgen.get_ref()
             x_dot = self.PI_x.calculate_output(self.bot.get_x(), x_ref)
             y_dot = self.PI_y.calculate_output(self.bot.get_y(), y_ref)
@@ -67,9 +69,10 @@ class Regul(threading.Thread):
             
 
     def write_output(self, wheel_speeds):
+        self.bot.set_speeds([round(wheel_speeds[2]), round(wheel_speeds[0]), round(wheel_speeds[1])])
         for i, v in enumerate(wheel_speeds):
-            self.bot.set_speed(i, round(v))
-            print(v)
+            #self.bot.set_speed(i, round(v))
+            print(f"wheel {i}: {v}")
 
     def read_input(self):
         return self.bot.get_x(), self.bot.get_y()

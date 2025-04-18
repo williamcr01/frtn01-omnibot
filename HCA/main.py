@@ -22,11 +22,13 @@ with Connection(HOST, PORT) as bot:
         regul.set_refgen(refgen)
 
         refgen.start()
+        sleep(1)
         regul.start()
+        sleep(1)
 
         print("threads started")
 
-        sleep(5)
+        #sleep(5)
 
         # Go one way for 3 seconds
         while True:
@@ -35,8 +37,8 @@ with Connection(HOST, PORT) as bot:
             #bot.set_speeds([vset,vset,vset])
             
             # print position
-            print('x:'+str(bot.get_x()))
-            print('y:'+str(bot.get_y()))
-            print('theta:'+str(bot.get_theta()))
+            #print('x:'+str(bot.get_x()))
+            #print('y:'+str(bot.get_y()))
+            #print('theta:'+str(bot.get_theta()))
 
             sleep(1)

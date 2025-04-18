@@ -7,7 +7,7 @@ class PI():
         self.v = 0.0
         self.e = 0.0
         self.H = H
-        self.p = PIParameters.PIParameters(K=1.0, Ti=0.0, Tr=10.0, Beta=1.0, H=self.H, integrator_on=False)
+        self.p = PIParameters.PIParameters(K=1.0, Ti=0.1, Tr=10.0, Beta=1.0, H=self.H, integrator_on=True)
 
     def calculate_output(self, y, yref):
         self.e = yref - y;

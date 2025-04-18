@@ -34,12 +34,15 @@ class RefGen(threading.Thread):
         #self.y_ref = self.bot.get_y()
 
         alpha = 0.1  # Smoothing factor: 0 = no movement, 1 = jump instantly
+        if self.x_ref == None and self.y_ref == None:
+            self.x_ref = 5.0 # temp for testing
+            self.y_ref = 5.0 # temp for testing
 
         while self.running:
             print("refgen thread running")
             # Update reference
             self.x_ref += alpha * (self.x_target - self.x_ref)
             self.y_ref += alpha * (self.y_target - self.y_ref)  
-            print(self.x_ref + " & " + self.y_ref)
+            print(f"RefX: {self.x_ref}, RefY: {self.y_ref}")
 
             time.sleep(self.h)
