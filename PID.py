@@ -57,6 +57,8 @@ class PID(threading.Thread):
         self.port = 9998             # Define port inside the thread class
         self.x_ref = 0
         self.y_ref = 0
+        self.x = 0
+        self.y = 0
         self.theta_ref = 0
         self.running = True
         self.integral_error = np.zeros(3)  # [int_x, int_y, int_theta]
@@ -67,9 +69,9 @@ class PID(threading.Thread):
         with Connection(self.host, self.port) as bot:
             while self.running:
                 # Get current state from robot
-                x = bot.get_x()
-                y = bot.get_y()
-                theta = np.radians(bot.get_theta() + 90)  # Convert to radians
+                self.x = bot.get_x()
+                self.y = bot.get_y()
+                self.theta = np.radians(bot.get_theta() + 90)  # Convert to radians
 
                 refPoints = self.refgen.getRefPoints()
                 self.x_ref = refPoints[0]
@@ -78,11 +80,11 @@ class PID(threading.Thread):
 
                 # Compute velocity commands
                 xdot, ydot, thetadot, self.integral_error = position_control(
-                    self.x_ref, self.y_ref, self.theta_ref + np.radians(90), x, y, theta, self.integral_error
+                    self.x_ref, self.y_ref, self.theta_ref + np.radians(90), self.x, self.y, self.theta, self.integral_error
                 )
 
                 # Compute wheel speeds
-                wheel_speeds = inverse_kinematics(theta, xdot, ydot, thetadot)
+                wheel_speeds = inverse_kinematics(self.theta, xdot, ydot, thetadot)
 
                 # Send wheel speeds to correct motors
                 bot.set_speed(1, round(wheel_speeds[2]))
@@ -90,10 +92,13 @@ class PID(threading.Thread):
                 bot.set_speed(3, round(wheel_speeds[1]))
 
                 print("Wheel Speeds:", wheel_speeds)
-                print(f"x: {x:.2f}, y: {y:.2f}, theta: {np.rad2deg(theta):.2f}")
+                print(f"x: {self.x:.2f}, y: {self.y:.2f}, theta: {np.rad2deg(self.theta):.2f}")
 
                 # Sleep to control loop rate
                 time.sleep(0.01)
+
+    def getState(self):
+        return self.x, self.y, self.theta
 
     def stop(self):
         self.running = False

@@ -49,9 +49,9 @@ def handle_events(gui,refgen,pid):
 def main():
     
     refgen = RefGen()
-    gui = GUI(refgen=refgen)
-    pid = PID(refgen=refgen)
     
+    pid = PID(refgen=refgen)
+    gui = GUI(refgen=refgen, pid=pid)
     
     refgen.start()
     gui_thread = gui.start()

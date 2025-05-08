@@ -5,7 +5,7 @@ from RefGen import RefGen
 import numpy as np
 
 class GUI(threading.Thread):
-    def __init__(self, width=1300, height=750, refgen=None):
+    def __init__(self, width=1300, height=750, refgen=None, pid=None):
         pygame.init()
         self.width = width
         self.height = height
@@ -13,6 +13,7 @@ class GUI(threading.Thread):
         self.enterPressed = True
 
         self.refgen = refgen  # Store the reference to refgen
+        self.pid = pid  # Store the reference to pid
 
 
 
@@ -101,6 +102,9 @@ class GUI(threading.Thread):
                 self.draw_cartesian_curve(self.inputVector[0])  # Draw the curve based on the size factor
 
                 refvect = self.refgen.getRefPoints()  # Get reference points from Refgen
+                statevect = self.pid.getState()  # Get state from PID
+
+                pygame.draw.circle(self.screen, self.red, statevect[0], statevect[1], 5)  # Draw current position
 
                 self.update_ref_pos(refvect[0], refvect[1], self.size_factor)  # Update reference position based on input values
                 pygame.draw.circle(self.screen, self.black, self.refPos, 5)  # Draw reference position
