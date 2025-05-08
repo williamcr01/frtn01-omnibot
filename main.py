@@ -3,16 +3,19 @@ import time
 
 from GUI import GUI
 from RefGen import RefGen
+from PID import PID
 
-def handle_events(gui,refgen):
+def handle_events(gui,refgen,pid):
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             gui.stop()
             refgen.stop()
+            pid.stop()
         elif event.type == pygame.KEYDOWN:
             if event.key == pygame.K_ESCAPE:
                 gui.stop()
                 refgen.stop()
+                pid.stop()
 
             for box in gui.input_boxes:
                             if box["active"]:
@@ -47,14 +50,17 @@ def main():
     
     refgen = RefGen()
     gui = GUI(refgen=refgen)
+    pid = PID(refgen=refgen)
+    
     
     refgen.start()
     gui_thread = gui.start()
+    pid.start()
     
 
 
     while gui.running:
-        handle_events(gui,refgen)
+        handle_events(gui,refgen,pid)
         time.sleep(0.01)  # Prevents CPU overload
 
     gui_thread.join()  # Wait for the GUI thread to finish

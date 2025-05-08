@@ -1,5 +1,6 @@
 import threading
 import time
+import numpy as np
 
 class RefGen(threading.Thread):
     def __init__(self):
@@ -12,6 +13,7 @@ class RefGen(threading.Thread):
 
         self.refXValue = 0
         self.refYValue = 0
+        self.thetaRefValue = 0
 
         self.updateFlag = False
 
@@ -23,7 +25,7 @@ class RefGen(threading.Thread):
         self.refY = refY
 
     def getRefPoints(self):
-        return [self.refXValue, self.refYValue]
+        return [self.refXValue, self.refYValue, self.thetaRefValue]
     
     def OnOffInput(self):
         if(self.updateFlag):
@@ -61,13 +63,17 @@ class RefGen(threading.Thread):
                 else:
                     self.refYValue = self.refY[999 - self.currentIndex]
                 
+                #self.thetaRefValue += np.deg2rad(0.5)
+
+                #if(self.thetaRefValue >= 2 * np.pi):
+                #    self.thetaRefValue = 0
                 self.currentIndex += 1
                 if(self.currentIndex >= 1000):
                     self.currentIndex = 0
 
                 print(f"RefX: {self.refXValue}, RefY: {self.refYValue}")
 
-                time.sleep(0.03)
+                time.sleep(0.04)
     def stop(self):
         self.running = False
 

@@ -1,64 +1,100 @@
 import numpy as np
 import time
+import threading
 from omnibot.tcp import Connection
 
 # Robot Parameters
-r = 0.028*0.45/18  # Wheel radius (meters)
-R = 0.16   # Distance from center to wheels (meters)
-Kp = 0.005  # Proportional control gain
+r = 0.028 * 0.45 / 18  # Wheel radius (meters)
+R = 0.16               # Distance from center to wheels (meters)
+
+# Proportional and Integral Gains
+KpX = 0.7
+KpY = 0.7
+KiX = 0.05
+KiY = 0.05
+Kptheta = 0.7
+Kitheta = 0.02
+
+# Anti-windup limit
+INTEGRAL_LIMIT = 1.0
 
 # Inverse Kinematics Matrix Function
 def inverse_kinematics(theta, xdot, ydot, thetadot):
-    J_inv = (1/r) * np.array([
+    J_inv = (1 / r) * np.array([
         [-np.sin(theta), np.cos(theta), R],
         [-np.sin(theta + 2*np.pi/3), np.cos(theta + 2*np.pi/3), R],
         [-np.sin(theta + 4*np.pi/3), np.cos(theta + 4*np.pi/3), R]
     ])
-    
-    wheel_speeds = J_inv @ np.array([xdot, ydot, thetadot])
-    return wheel_speeds
+    return J_inv @ np.array([xdot, ydot, thetadot])
 
-# Position Controller
-def position_control(x_ref, y_ref, theta_ref, x, y, theta):
+# Position Controller (PI)
+def position_control(x_ref, y_ref, theta_ref, x, y, theta, int_err):
     # Compute error
     ex = x_ref - x
     ey = y_ref - y
     etheta = theta_ref - theta
-    
-    # Proportional control to generate velocity commands
-    xdot = Kp * ex
-    ydot = Kp * ey
-    thetadot = Kp * etheta
-    
-    return xdot, ydot, thetadot
 
-# Connection Parameters
-HOST = "192.168.0.105"
-PORT = 9998
+    # Integrate error
+    int_err[0] += ex
+    int_err[1] += ey
+    int_err[2] += etheta
 
-# Control loop
-if __name__ == "__main__":
-    # Target position
-    x_ref, y_ref, theta_ref = 0.0, 0.0, 0  # Modify as needed
-    
-    with Connection(HOST, PORT) as bot:
-        while True:
-            # Get current state from robot
-            x = bot.get_x()
-            y = bot.get_y()
-            theta = bot.get_theta()
-            
-            # Compute velocity commands
-            xdot, ydot, thetadot = position_control(x_ref, y_ref, theta_ref, x, y, theta)
-            
-            # Compute wheel speeds
-            wheel_speeds = inverse_kinematics(theta, xdot, ydot, thetadot)
-            
-            # Send wheel speeds to motors
-            for i, v in enumerate(wheel_speeds):
-                bot.set_speed(i, round(v))
-            
-            print("Wheel Speeds:", wheel_speeds)
-            print(f"x: {x}, y: {y}, theta: {theta}")
-            time.sleep(0.2)
-            
+    # Clamp integral error to avoid windup
+    int_err = np.clip(int_err, -INTEGRAL_LIMIT, INTEGRAL_LIMIT)
+
+    # Compute control signal
+    xdot = KpX * ex + KiX * int_err[0]
+    ydot = KpY * ey + KiY * int_err[1]
+    thetadot = -(Kptheta * etheta + Kitheta * int_err[2])
+
+    return xdot, ydot, thetadot, int_err
+
+# Control Thread Class
+class PID(threading.Thread):
+    def __init__(self, refgen):
+        super().__init__()
+        self.host = "192.168.0.105"  # Define host inside the thread class
+        self.port = 9998             # Define port inside the thread class
+        self.x_ref = 0
+        self.y_ref = 0
+        self.theta_ref = 0
+        self.running = True
+        self.integral_error = np.zeros(3)  # [int_x, int_y, int_theta]
+
+        self.refgen = refgen
+
+    def run(self):
+        with Connection(self.host, self.port) as bot:
+            while self.running:
+                # Get current state from robot
+                x = bot.get_x()
+                y = bot.get_y()
+                theta = np.radians(bot.get_theta() + 90)  # Convert to radians
+
+                refPoints = self.refgen.getRefPoints()
+                self.x_ref = refPoints[0]
+                self.y_ref = refPoints[1]
+                self.theta_ref = refPoints[2]
+
+                # Compute velocity commands
+                xdot, ydot, thetadot, self.integral_error = position_control(
+                    self.x_ref, self.y_ref, self.theta_ref + np.radians(90), x, y, theta, self.integral_error
+                )
+
+                # Compute wheel speeds
+                wheel_speeds = inverse_kinematics(theta, xdot, ydot, thetadot)
+
+                # Send wheel speeds to correct motors
+                bot.set_speed(1, round(wheel_speeds[2]))
+                bot.set_speed(2, round(wheel_speeds[0]))
+                bot.set_speed(3, round(wheel_speeds[1]))
+
+                print("Wheel Speeds:", wheel_speeds)
+                print(f"x: {x:.2f}, y: {y:.2f}, theta: {np.rad2deg(theta):.2f}")
+
+                # Sleep to control loop rate
+                time.sleep(0.01)
+
+    def stop(self):
+        self.running = False
+        self.stop_event.set()
