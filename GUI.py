@@ -90,6 +90,9 @@ class GUI(threading.Thread):
             "label": "Restart"
         }
 
+        # Inits for ErrorGraph
+        self.errorHistory = []
+        self.errorHistoryMax = 300
 
     def run(self):
         self.running = True
@@ -141,6 +144,8 @@ class GUI(threading.Thread):
                 restart_label = self.font.render(self.restart_button["label"], True, self.black)
                 label_rect = restart_label.get_rect(center=self.restart_button["rect"].center)
                 self.screen.blit(restart_label, label_rect)
+
+                self.draw_error_graph()  # Draw the error graph
 
 
                 pygame.display.flip() # Update the display
@@ -272,7 +277,51 @@ class GUI(threading.Thread):
             int(origin_y - y * self.meters_to_pixels_y / 2)
         )
 
+    def draw_error_graph(self):
+        try:
+            currentError = self.pid.getErrors()[0]
+        except:
+            currentError = 0
 
+        self.errorHistory.append(currentError)
+        if len(self.errorHistory) > self.errorHistoryMax:
+            self.errorHistory.pop(0)
+
+        # Dimensions and position
+        padding = 20
+        graph_x = self.posScreen.right + padding
+        graph_y = self.posScreen.top
+        graph_width = self.width - graph_x - padding
+        graph_height = self.posScreen.height
+
+        # Adjust resolution
+        if self.errorHistoryMax != graph_width:
+            self.errorHistoryMax = graph_width
+            self.errorHistory = self.errorHistory[-graph_width:]
+
+        # Draw background
+        pygame.draw.rect(self.screen, self.gray, (graph_x, graph_y, graph_width, graph_height), border_radius=10)
+
+        # Axis line at bottom (0 error)
+        base_y = graph_y + graph_height
+        pygame.draw.line(self.screen, (100, 100, 100), (graph_x, base_y), (graph_x + graph_width, base_y), 1)
+
+        # Plot error line
+        if len(self.errorHistory) > 1:
+            max_display_error = 1.0  # Adjust if your error can exceed 1
+            step_x = graph_width / len(self.errorHistory)
+            points = []
+            for i, err in enumerate(self.errorHistory):
+                x = graph_x + int(i * step_x)
+                # Scale to fit graph height (higher error = taller line)
+                clamped_err = min(err, max_display_error)
+                y = base_y - int(clamped_err / max_display_error * graph_height)
+                points.append((x, y))
+            pygame.draw.lines(self.screen, (255, 0, 0), False, points, 2)
+
+        # Label
+        label = self.font.render("X Error (0 to 1)", True, self.black)
+        self.screen.blit(label, (graph_x + 10, graph_y + 10))
             
     def stop(self):
         """Stops the GUI thread."""

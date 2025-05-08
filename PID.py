@@ -62,6 +62,8 @@ class PID(threading.Thread):
         self.theta_ref = 0
         self.running = True
         self.integral_error = np.zeros(3)  # [int_x, int_y, int_theta]
+        self.distError = 0
+        self.angleError = 0
 
         self.refgen = refgen
 
@@ -91,6 +93,9 @@ class PID(threading.Thread):
                 bot.set_speed(2, round(wheel_speeds[0]))
                 bot.set_speed(3, round(wheel_speeds[1]))
 
+                self.distError = np.sqrt((self.x_ref - self.x) ** 2 + (self.y_ref - self.y) ** 2)
+                self.angleError = self.theta_ref - self.theta
+
                 print("Wheel Speeds:", wheel_speeds)
                 print(f"x: {self.x:.2f}, y: {self.y:.2f}, theta: {np.rad2deg(self.theta):.2f}")
 
@@ -99,6 +104,9 @@ class PID(threading.Thread):
 
     def getState(self):
         return self.x, self.y, self.theta
+    
+    def getErrors(self):
+        return self.distError, self.angleError
 
     def stop(self):
         self.running = False
