@@ -14,7 +14,7 @@ def main():
     #gui = GUI(refgen=refgen)
     refgen.start()
     #refgen.OnOffInput()
-    time.sleep(1)
+    time.sleep(1) # give refgen time to start up
 
     while True:
         i = i + 1
@@ -23,12 +23,13 @@ def main():
         y_ref_arr = np.append(y_ref_arr, y_ref)
         sample = np.append(sample, i)
         if x_ref < 0.001 and y_ref < 0.001:
-            refgen.set_running()
+            refgen.set_running() # on
             break
         time.sleep(0.05)
 
     plt.plot(sample, x_ref_arr)
     plt.savefig("myplot.png")
+    refgen.set_running() # off
 
 
 

@@ -1,6 +1,10 @@
 import numpy as np
 
 def harmonic_array(x, t, T, H):
+    #x - signal (vector)
+    #t - time vector
+    #T - time window
+    #H - number of harmonic elements
     omega = 2 * np.pi / T
     X_harmonic = np.zeros((H + 1, len(t)), dtype=complex)
 
