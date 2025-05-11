@@ -21,3 +21,6 @@ def harmonic_array(x, t, T, H):
             X_harmonic[h, k] = (1 / T) * integral
 
     return X_harmonic
+
+
+
