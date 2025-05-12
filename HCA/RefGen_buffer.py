@@ -3,7 +3,7 @@ import time
 import numpy as np
 
 class RefGen(threading.Thread):
-    def __init__(self, amplitude=1.0, frequency=1.0, dt=0.1, num_points=100):
+    def __init__(self, amplitude=1.0, frequency=1.0, dt=0.5, num_points=100):
         super().__init__()
         self.running = True
         self.updateFlag = False
@@ -30,9 +30,11 @@ class RefGen(threading.Thread):
 
         for t in t_vals:
             x = A * np.cos(t)
-            y = A * np.sin(t) * np.cos(t)
+            #y = A * np.sin(t) * np.cos(t)
+            y = A * np.sin(t) * 0
             dx = -A * np.sin(t)
-            dy = A * (np.cos(t)**2 - np.sin(t)**2)
+            #dy = A * (np.cos(t)**2 - np.sin(t)**2)
+            dy = A * np.cos(t) * 0
             theta = np.arctan2(dy, dx)
             self.refBuffer.append((x, y, theta))
 
@@ -46,6 +48,7 @@ class RefGen(threading.Thread):
         self.index = 0
 
     def run(self):
+        print(f"RefX: {self.refBuffer[self.index][0]:.3f}, RefY: {self.refBuffer[self.index][1]:.3f}, Theta: {np.rad2deg(self.refBuffer[self.index][2]):.2f}°", flush=True)
         while self.running:
             if self.updateFlag:
                 x, y, theta = self.refBuffer[self.index]
@@ -53,7 +56,7 @@ class RefGen(threading.Thread):
                 self.refYValue = y
                 self.thetaRefValue = theta
 
-                print(f"RefX: {x:.3f}, RefY: {y:.3f}, Theta: {np.rad2deg(theta):.2f}°", flush=True)
+                #print(f"RefX: {x:.3f}, RefY: {y:.3f}, Theta: {np.rad2deg(theta):.2f}°", flush=True)
 
                 self.index += 1
                 if self.index >= self.num_points:
