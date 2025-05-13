@@ -206,7 +206,7 @@ class PI(threading.Thread):
                 if sleep_time > 0:
                     time.sleep(sleep_time)
                 else:
-                    print(f"Warning: RefGen loop overran desired time by {sleep_time} seconds")
+                    print(f"Warning: Control loop overran desired time by {sleep_time} seconds")
 
     def getState(self):
         return self.x, self.y, self.theta
