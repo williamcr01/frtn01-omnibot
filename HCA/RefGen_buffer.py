@@ -3,10 +3,11 @@ import time
 import numpy as np
 
 class RefGen(threading.Thread):
-    def __init__(self, amplitude=1.0, frequency=1.0, dt=0.5, num_points=100):
+    def __init__(self, amplitude=0.5, frequency=1.0, dt=0.2, num_points=100):
         super().__init__()
         self.running = True
         self.updateFlag = False
+        self.botIsRunning = False
 
         self.refXValue = 0
         self.refYValue = 0
@@ -35,7 +36,8 @@ class RefGen(threading.Thread):
             dx = -A * np.sin(t)
             #dy = A * (np.cos(t)**2 - np.sin(t)**2)
             dy = A * np.cos(t) * 0
-            theta = np.arctan2(dy, dx)
+            #theta = np.arctan2(dy, dx)
+            theta = 0
             self.refBuffer.append((x, y, theta))
 
     def getRefPoints(self):
@@ -44,13 +46,20 @@ class RefGen(threading.Thread):
     def OnOffInput(self):
         self.updateFlag = not self.updateFlag
 
+    def botRunning(self, run):
+        self.botRunning = run
+
     def restart(self):
         self.index = 0
 
     def run(self):
-        print(f"RefX: {self.refBuffer[self.index][0]:.3f}, RefY: {self.refBuffer[self.index][1]:.3f}, Theta: {np.rad2deg(self.refBuffer[self.index][2]):.2f}°", flush=True)
+        print(
+            f"RefX: {self.refBuffer[self.index][0]:.3f}, RefY: {self.refBuffer[self.index][1]:.3f}, Theta: {np.rad2deg(self.refBuffer[self.index][2]):.2f}°",
+            flush=True
+            )
+        next_time = time.time()
         while self.running:
-            if self.updateFlag:
+            if self.updateFlag and self.botIsRunning:
                 x, y, theta = self.refBuffer[self.index]
                 self.refXValue = x
                 self.refYValue = y
@@ -62,7 +71,13 @@ class RefGen(threading.Thread):
                 if self.index >= self.num_points:
                     self.index = 0  # Loop forever
 
-                time.sleep(self.dt)
+                # Control loop fixed time
+                next_time += self.dt
+                sleep_time = next_time - time.time()
+                if sleep_time > 0:
+                    time.sleep(sleep_time)
+                else:
+                    print(f"Warning: RefGen loop overran desired time by {sleep_time} seconds")
 
     def stop(self):
         self.running = False

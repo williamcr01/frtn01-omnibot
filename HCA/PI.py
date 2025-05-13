@@ -9,12 +9,12 @@ r = 0.028 * 0.45 / 18  # Wheel radius (meters)
 R = 0.16               # Distance from center to wheels (meters)
 
 # Proportional and Integral Gains
-KpX = 0.7
-KpY = 0.7
-KiX = 0.1
-KiY = 0.1
-Kptheta = 0.7
-Kitheta = 0.1
+KpX = 0
+KpY = 0
+KiX = 0
+KiY = 0
+Kptheta = 0
+Kitheta = 0
 
 # Anti-windup limit
 INTEGRAL_LIMIT = 1.0
@@ -50,6 +50,7 @@ def position_control(x_ref, y_ref, theta_ref, x, y, theta, int_err):
 
     return xdot, ydot, thetadot, int_err
 
+# Position control with HCA and PI
 def hca_position_control(
     disp_x, disp_y, disp_theta,        # Dispersion arrays (complex) for x, y, theta
     int_x, int_y, int_theta,           # Integral state arrays (complex)
@@ -126,6 +127,7 @@ class PI(threading.Thread):
         self.integral_error = np.zeros(3)  # [int_x, int_y, int_theta]
         self.distError = 0
         self.angleError = 0
+        self.dt = 0.5
 
         self.refgen = refgen
 
@@ -141,6 +143,8 @@ class PI(threading.Thread):
 
     def run(self):
         with Connection(self.host, self.port) as bot:
+            next_time = time.time()
+            self.refgen.botRunning(True)
             while self.running:
                 # Get current state from robot
                 self.x = bot.get_x()
@@ -194,7 +198,15 @@ class PI(threading.Thread):
                     self.refgen.updateFlag = False """
 
                 # Sleep to control loop rate
-                time.sleep(0.5)
+                # time.sleep(self.dt)
+
+                # Control loop fixed time
+                next_time += self.dt
+                sleep_time = next_time - time.time()
+                if sleep_time > 0:
+                    time.sleep(sleep_time)
+                else:
+                    print(f"Warning: RefGen loop overran desired time by {sleep_time} seconds")
 
     def getState(self):
         return self.x, self.y, self.theta
