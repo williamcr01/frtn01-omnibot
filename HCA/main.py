@@ -4,17 +4,20 @@ from RefGen_buffer import RefGen
 from PI import PI
 import numpy as np
 
-H = 2
-N = 40
+dt_control = 0.5
+dt_refgen = 0.2
+num_points = 100
+H = 1
+N = round((dt_refgen*num_points)/dt_control)
 
 H_parts = H + 1
 
 def main():
     
-    refgen = RefGen()
+    refgen = RefGen(dt=dt_refgen, num_points=num_points)
     refgen.OnOffInput()
     
-    pi = PI(refgen=refgen, N=N, H=H)
+    pi = PI(refgen=refgen, N=N, H=H, dt=dt_control)
 
     refgen.start()
     time.sleep(1) # calculate buffer
@@ -71,13 +74,13 @@ def main():
         y_ref = pi.y_ref
         y_err = y_ref - y
 
-        re_1 = np.real(pi.dispersions_x[2])
-        re_2 = np.imag(pi.dispersions_x[2])
+        #re_1 = np.real(pi.dispersions_x[2])
+        #re_2 = np.imag(pi.dispersions_x[2])
 
         time_data.append(t)
         x_vals = [x, x_ref, x_err]
         y_vals = [y, y_ref, y_err]
-        re_vals = [re_1, re_2]
+        #re_vals = [re_1, re_2]
 
         for i in range(H_parts):
             x_re_signals[i].append(np.real(pi.dispersions_x[i]))

@@ -3,7 +3,7 @@ import time
 import numpy as np
 
 class RefGen(threading.Thread):
-    def __init__(self, amplitude=0.5, frequency=1.0, dt=0.2, num_points=100):
+    def __init__(self, amplitude=1.0, frequency=1.0, dt=0.2, num_points=100):
         super().__init__()
         self.running = True
         self.updateFlag = False
@@ -32,10 +32,10 @@ class RefGen(threading.Thread):
         for t in t_vals:
             x = A * np.cos(t)
             #y = A * np.sin(t) * np.cos(t)
-            y = A * np.sin(t) * 0
+            y = A * np.sin(t)
             dx = -A * np.sin(t)
             #dy = A * (np.cos(t)**2 - np.sin(t)**2)
-            dy = A * np.cos(t) * 0
+            dy = A * np.cos(t)
             #theta = np.arctan2(dy, dx)
             theta = 0
             self.refBuffer.append((x, y, theta))
@@ -47,7 +47,7 @@ class RefGen(threading.Thread):
         self.updateFlag = not self.updateFlag
 
     def botRunning(self, run):
-        self.botRunning = run
+        self.botIsRunning = run
 
     def restart(self):
         self.index = 0
@@ -77,7 +77,8 @@ class RefGen(threading.Thread):
                 if sleep_time > 0:
                     time.sleep(sleep_time)
                 else:
-                    print(f"Warning: RefGen loop overran desired time by {sleep_time} seconds")
+                    print(f"Warning: RefGen loop overran desired time by {-sleep_time} seconds")
+                    next_time = time.time()
 
     def stop(self):
         self.running = False

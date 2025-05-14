@@ -3,14 +3,6 @@ import matplotlib.pyplot as plt
 
 
 def initialize_disperser(H, N):
-    """
-    Initializes buffers and exponential lookup table for all harmonics.
-
-    Returns:
-        buffer: circular buffer of shape (N,)
-        dispersions: current harmonic values, shape (H + 1,)
-        exp_factors: precomputed exponential factors of shape (H + 1,)
-    """
     buffer = np.zeros(N)
     dispersions = np.zeros(H + 1, dtype=complex)
     n = 0  # current sample index
@@ -24,12 +16,6 @@ def initialize_disperser(H, N):
 
 
 def update_disperser(e_n, buffer, dispersions, exp_factors, n):
-    """
-    Updates the dispersion vector with new sample e_n.
-
-    Returns:
-        Updated dispersions and updated index n.
-    """
     N = len(buffer)
     old_e = buffer[n % N]
     buffer[n % N] = e_n  # Update circular buffer
@@ -41,7 +27,6 @@ def update_disperser(e_n, buffer, dispersions, exp_factors, n):
     return dispersions, (n + 1)
 
 def test():
-    # --- Example Usage ---
     # Parameters
     T = 1.0  # Period in seconds
     Ts = 0.01  # Sampling time
@@ -84,7 +69,7 @@ def test_HCA():
     t = np.arange(0, duration, Ts)
 
     # --- Signals (x, y, theta) ---
-    x_signal = np.sin(2 * np.pi * t) + 0.5 * np.sin(4 * np.pi * t)        # 1 Hz + 2 Hz
+    x_signal = np.sin(1.1* 2 * np.pi * t) + 0.5 * np.sin(4 * np.pi * t)        # 1 Hz + 2 Hz
     y_signal = np.cos(2 * np.pi * t) + 0.3 * np.sin(6 * np.pi * t)        # 1 Hz + 3 Hz
     theta_signal = 0.8 * np.sin(2 * np.pi * t) + 0.4 * np.sin(8 * np.pi * t)  # 1 Hz + 4 Hz
 
@@ -144,20 +129,20 @@ def test_HCA():
 
         # Dispersion magnitudes
         for h in range(H + 1):
-            axs[row][1].plot(t, np.abs(dispersions_histories[label][:, h]), label=f"h={h}")
-        axs[row][1].set_title(f"Dispersion Magnitude {label}")
+            axs[row][1].plot(t, np.real(dispersions_histories[label][:, h]), label=f"h={h}")
+        axs[row][1].set_title(f"Dispersion Real Part {label}")
         axs[row][1].legend()
 
         # Dispersion magnitudes
         for h in range(H + 1):
-            axs[row][2].plot(t, np.real(dispersions_histories[label][:, h]), label=f"h={h}")
-        axs[row][2].set_title(f"Dispersion Real Part {label}")
+            axs[row][2].plot(t, np.imag(dispersions_histories[label][:, h]), label=f"h={h}")
+        axs[row][2].set_title(f"Dispersion Imag Part {label}")
         axs[row][2].legend()
 
         # Dispersion magnitudes
         for h in range(H + 1):
-            axs[row][3].plot(t, np.imag(dispersions_histories[label][:, h]), label=f"h={h}")
-        axs[row][3].set_title(f"Dispersion Imag Part {label}")
+            axs[row][3].plot(t, np.abs(dispersions_histories[label][:, h]), label=f"h={h}")
+        axs[row][3].set_title(f"Dispersion Magnitude {label}")
         axs[row][3].legend()
 
         # Assembled signal
