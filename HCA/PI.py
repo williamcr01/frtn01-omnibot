@@ -17,10 +17,10 @@ KiY = (0.4 + 1j) * 0
 Kptheta = 1.2
 Kitheta = (0.4 + 1j) * 0
 
-KpX_arr = [0.15, 0.0]
-KpY_arr = [0.15, 0.0]
-KiX_arr = [0.0, 0.0]
-KiY_arr = [0.0, 0.0]
+KpX_arr = [0.4, 0.50]
+KpY_arr = [0.10, 0.50]
+KiX_arr = [0.00003, 0.01*np.exp(0.5j*np.pi)]
+KiY_arr = [0.0004, 0.01*np.exp(0.5j*np.pi)]
 KpTheta_arr = [0.0, 0.0]
 KiTheta_arr = [0.0, 0.0]
 
@@ -161,7 +161,7 @@ def hca_anti_windup(integral_error):
 
 # Control Thread Class
 class PI(threading.Thread):
-    def __init__(self, refgen, N, H, dt):
+    def __init__(self, refgen, N, H, dt, period, dt_refgen):
         super().__init__()
         self.host = "192.168.0.105"  # Define host inside the thread class
         self.port = 9998             # Define port inside the thread class
@@ -175,6 +175,9 @@ class PI(threading.Thread):
         self.distError = 0
         self.angleError = 0
         self.dt = dt
+        self.period = period
+        self.starterTimer = 0
+        self.dt_refgen = dt_refgen
 
         self.refgen = refgen
 
@@ -223,9 +226,11 @@ class PI(threading.Thread):
                     self.dispersions_x, self.dispersions_y, self.dispersions_theta, self.int_err_x, self.int_err_y, self.int_err_theta,
                     self.n_x, self.n_y, self.n_theta, self.N
                 )
-
+                if self.starterTimer >= self.period:
                 # Compute wheel speeds
-                wheel_speeds = inverse_kinematics(self.theta, xdot, ydot, thetadot)
+                    wheel_speeds = inverse_kinematics(self.theta, xdot, ydot, thetadot)
+                else:
+                    wheel_speeds = np.zeros(3)
 
                 # Send wheel speeds to correct motors
                 bot.set_speed(1, round(wheel_speeds[2]))
@@ -252,6 +257,7 @@ class PI(threading.Thread):
                 # Control loop fixed time
                 next_time += self.dt
                 sleep_time = next_time - time.time()
+                self.starterTimer += self.dt
                 if sleep_time > 0:
                     time.sleep(sleep_time)
                 else:
@@ -266,4 +272,4 @@ class PI(threading.Thread):
 
     def stop(self):
         self.running = False
-        self.stop_event.set()
+        self.join()
