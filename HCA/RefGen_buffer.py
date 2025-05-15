@@ -31,11 +31,11 @@ class RefGen(threading.Thread):
 
         for t in t_vals:
             x = A * np.cos(t)
-            #y = A * np.sin(t) * np.cos(t)
-            y = A * np.sin(t)
+            y = A * np.sin(t) * np.cos(t)
+            #y = A * np.sin(t)
             dx = -A * np.sin(t)
-            #dy = A * (np.cos(t)**2 - np.sin(t)**2)
-            dy = A * np.cos(t)
+            dy = A * (np.cos(t)**2 - np.sin(t)**2)
+            #dy = A * np.cos(t)
             #theta = np.arctan2(dy, dx)
             theta = 0
             self.refBuffer.append((x, y, theta))

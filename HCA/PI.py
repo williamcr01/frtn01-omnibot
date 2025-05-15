@@ -17,12 +17,13 @@ KiY = (0.4 + 1j) * 0
 Kptheta = 1.2
 Kitheta = (0.4 + 1j) * 0
 
-KpX_arr = [0.4, 0.50]
-KpY_arr = [0.10, 0.50]
-KiX_arr = [0.00003, 0.01*np.exp(0.5j*np.pi)]
-KiY_arr = [0.0004, 0.01*np.exp(0.5j*np.pi)]
-KpTheta_arr = [0.0, 0.0]
-KiTheta_arr = [0.0, 0.0]
+# Proportional and Integral Gains HCA
+KpX_arr = [0.065, 0.325, 0.0]
+KpY_arr = [0.0525, 0.0125, 0.55]
+KiX_arr = [0.00015, 0.0725*np.exp(0.4j*np.pi), 0.0]
+KiY_arr = [0.0175, 0.0015, 0.1*np.exp(0.5j*np.pi)]
+KpTheta_arr = [0.0275, 0.0, 0.0]
+KiTheta_arr = [0.015, 0.0, 0.0]
 
 # Anti-windup limit
 INTEGRAL_LIMIT = 1.0
@@ -57,49 +58,6 @@ def position_control(x_ref, y_ref, theta_ref, x, y, theta, int_err):
     thetadot = -(Kptheta * etheta + Kitheta * int_err[2])
 
     return xdot, ydot, thetadot, int_err
-
-# Position control with HCA and PI
-def hca_position_control(
-    disp_x, disp_y, disp_theta,        # Dispersion arrays (complex) for x, y, theta
-    int_x, int_y, int_theta,           # Integral state arrays (complex)
-    n_x, n_y, n_theta,                 # Current time step
-    N                                  # Samples per period
-):
-
-    # Update integrals
-    int_x += disp_x
-    int_y += disp_y
-    int_theta += disp_theta
-
-    int_x = hca_anti_windup(int_x)
-    int_y = hca_anti_windup(int_y)
-    int_theta = hca_anti_windup(int_theta)
-
-    # Apply scalar PI control to each harmonic (element-wise)
-    ctrl_disp_x = KpX * disp_x + KiX * int_x
-    ctrl_disp_y = KpY * disp_y + KiY * int_y
-    ctrl_disp_theta = Kptheta * disp_theta + Kitheta * int_theta
-
-    # Assembler: convert control dispersions to time-domain control signals
-    H = len(disp_x) - 1
-    harmonics = np.arange(H + 1)
-    # Reduce number of calculations if all time steps are the same (they should be)
-    if n_x == n_y and n_x == n_theta:
-        phase_vector = np.exp(1j * 2 * np.pi * harmonics * n_x / N)
-
-        xdot = np.real(ctrl_disp_x[0] + 2 * np.sum(ctrl_disp_x[1:] * phase_vector[1:]))
-        ydot = np.real(ctrl_disp_y[0] + 2 * np.sum(ctrl_disp_y[1:] * phase_vector[1:]))
-        thetadot = -np.real(ctrl_disp_theta[0] + 2 * np.sum(ctrl_disp_theta[1:] * phase_vector[1:]))
-    else:
-        phase_vector_x = np.exp(1j * 2 * np.pi * harmonics * n_x / N)
-        phase_vector_y = np.exp(1j * 2 * np.pi * harmonics * n_y / N)
-        phase_vector_theta = np.exp(1j * 2 * np.pi * harmonics * n_theta / N)
-
-        xdot = np.real(ctrl_disp_x[0] + 2 * np.sum(ctrl_disp_x[1:] * phase_vector_x[1:]))
-        ydot = np.real(ctrl_disp_y[0] + 2 * np.sum(ctrl_disp_y[1:] * phase_vector_y[1:]))
-        thetadot = -np.real(ctrl_disp_theta[0] + 2 * np.sum(ctrl_disp_theta[1:] * phase_vector_theta[1:]))
-
-    return xdot, ydot, thetadot, int_x, int_y, int_theta
 
 def hca_position_control_arr(
     disp_x, disp_y, disp_theta,           # Dispersion arrays (complex)
@@ -218,15 +176,12 @@ class PI(threading.Thread):
                     e_theta, self.buffer_theta, self.dispersions_theta, self.exp_factors_theta, self.n_theta
                 )
 
-                # Compute velocity commands
-                #xdot, ydot, thetadot, self.integral_error = hca_position_control(
-                #    self.x_ref, self.y_ref, self.theta_ref + np.radians(90), self.x, self.y, self.theta, self.integral_error
-                #)
                 xdot, ydot, thetadot, self.int_err_x, self.int_err_y, self.int_err_theta, = hca_position_control_arr(
                     self.dispersions_x, self.dispersions_y, self.dispersions_theta, self.int_err_x, self.int_err_y, self.int_err_theta,
                     self.n_x, self.n_y, self.n_theta, self.N
                 )
                 if self.starterTimer >= self.period:
+
                 # Compute wheel speeds
                     wheel_speeds = inverse_kinematics(self.theta, xdot, ydot, thetadot)
                 else:
@@ -239,20 +194,6 @@ class PI(threading.Thread):
 
                 self.distError = np.sqrt((self.x_ref - self.x) ** 2 + (self.y_ref - self.y) ** 2)
                 self.angleError = self.theta_ref - self.theta
-
-                #print("Wheel Speeds:", wheel_speeds)
-                #print(f"x: {self.x:.2f}, y: {self.y:.2f}, theta: {np.rad2deg(self.theta):.2f}")
-                #print(f"x_err: {self.x_ref - self.x}, y_err: {self.y_ref - self.y},")
-
-                #dist = np.hypot(self.x_ref - self.x, self.y_ref - self.y)
-
-                """ if self.distError < 0.15:
-                    self.refgen.updateFlag = True
-                else:
-                    self.refgen.updateFlag = False """
-
-                # Sleep to control loop rate
-                # time.sleep(self.dt)
 
                 # Control loop fixed time
                 next_time += self.dt
