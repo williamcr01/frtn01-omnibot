@@ -3,11 +3,11 @@ import time
 import numpy as np
 
 class RefGen(threading.Thread):
-    def __init__(self, amplitude=1.0, frequency=1.0, dt=0.2, num_points=100):
+    def __init__(self, amplitude=0.5, frequency=1.0, dt=0.4, num_points=50):
         super().__init__()
         self.running = True
         self.updateFlag = False
-        self.botIsRunning = False
+        self.botIsRunning = True
 
         self.refXValue = 0
         self.refYValue = 0
@@ -19,7 +19,7 @@ class RefGen(threading.Thread):
         self.num_points = num_points
 
         self.refBuffer = []  # Precomputed list of (x, y, theta)
-        self.index = 0
+        self.index = 12
 
         self._generate_reference_path()
         #print(self.refBuffer)
@@ -40,6 +40,12 @@ class RefGen(threading.Thread):
             theta = 0
             self.refBuffer.append((x, y, theta))
 
+    def getXYBuffer(self):
+        x_vals = [point[0] for point in self.refBuffer]
+        y_vals = [point[1] for point in self.refBuffer]
+        return x_vals, y_vals
+
+
     def getRefPoints(self):
         return [self.refXValue, self.refYValue, self.thetaRefValue]
 
@@ -50,22 +56,22 @@ class RefGen(threading.Thread):
         self.botIsRunning = run
 
     def restart(self):
-        self.index = 0
+        self.index = 12
 
     def run(self):
-        print(
+        next_time = time.time()
+        while self.running:
+            print(
             f"RefX: {self.refBuffer[self.index][0]:.3f}, RefY: {self.refBuffer[self.index][1]:.3f}, Theta: {np.rad2deg(self.refBuffer[self.index][2]):.2f}°",
             flush=True
             )
-        next_time = time.time()
-        while self.running:
             if self.updateFlag and self.botIsRunning:
                 x, y, theta = self.refBuffer[self.index]
                 self.refXValue = x
                 self.refYValue = y
                 self.thetaRefValue = theta
 
-                #print(f"RefX: {x:.3f}, RefY: {y:.3f}, Theta: {np.rad2deg(theta):.2f}°", flush=True)
+                print(f"RefX: {x:.3f}, RefY: {y:.3f}, Theta: {np.rad2deg(theta):.2f}°", flush=True)
 
                 self.index += 1
                 if self.index >= self.num_points:
@@ -80,6 +86,8 @@ class RefGen(threading.Thread):
                     print(f"Warning: RefGen loop overran desired time by {-sleep_time} seconds")
                     next_time = time.time()
 
+    def getIndex(self):
+        return self.index
+
     def stop(self):
         self.running = False
-        self.join()

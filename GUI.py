@@ -15,6 +15,8 @@ class GUI(threading.Thread):
         self.refgen = refgen  # Store the reference to refgen
         self.pid = pid  # Store the reference to pid
 
+        self.clock = pygame.time.Clock()
+
 
 
         self.screen = pygame.display.set_mode((self.width, self.height))
@@ -35,6 +37,7 @@ class GUI(threading.Thread):
         self.size_factor = 0.5  # Default size factor
         self.refPos = (0, 0)  # Initialize reference position
         self.statePos = (0, 0)  # Initialize state position
+        self.xref_buffer, self.yref_buffer = [], []
 
 
         self.refY = []
@@ -104,7 +107,7 @@ class GUI(threading.Thread):
 
                 pygame.draw.rect(self.screen, self.gray, self.posScreen)  # Draw posScreen rectangle
 
-                self.draw_cartesian_curve(self.inputVector[0])  # Draw the curve based on the size factor
+                self.draw_refCurve()  # Draw the reference curve
 
                 refvect = self.refgen.getRefPoints()  # Get reference points from Refgen
                 statevect = self.pid.getState()  # Get state from PID
@@ -156,6 +159,8 @@ class GUI(threading.Thread):
                 print(f"Error in run loop: {e}")
                 self.running = False
 
+            self.clock.tick(60)  # Limit to 60 FPS
+
         self.stop()
 
     def start(self):
@@ -176,101 +181,22 @@ class GUI(threading.Thread):
             i += 1
         self.enterPressed = True
         return self.inputVector
-    
-    def draw_cartesian_curve(self, a=1.0):
-        if a == 0:
-            return
 
-        if self.enterPressed:
-            self.curve_points_pos.clear()
-            self.curve_points_neg.clear()
-
-            self.enterPressed = False
-
-            # Clear old ref points
-            self.refXpos.clear()
-            self.refXneg.clear()
-            self.refY.clear()
-
-            y_min = -abs(a)
-            y_max = abs(a)
-            num_raw_points = 1000
-
-            raw_x_pos = []
-            raw_x_neg = []
-            raw_y = []
-
-            for i in range(num_raw_points):
-                y = y_min + (y_max - y_min) * i / (num_raw_points - 1)
-                try:
-                    x_squared = y**2 - (y**4) / (a**2)
-                    if x_squared < 0:
-                        continue
-                    x = math.sqrt(x_squared)
-                    raw_y.append(y + self.inputVector[2])
-                    raw_x_pos.append(x + self.inputVector[1])
-                    raw_x_neg.append(-x + self.inputVector[1])
-                except:
-                    continue
-
-            # Resample for equal speed
-            def resample_curve(x_list, y_list, num_points=500):
-                distances = [0]
-                for i in range(1, len(x_list)):
-                    dx = x_list[i] - x_list[i - 1]
-                    dy = y_list[i] - y_list[i - 1]
-                    dist = math.hypot(dx, dy)
-                    distances.append(distances[-1] + dist)
-
-                total_length = distances[-1]
-                step = total_length / (num_points - 1)
-                target_lengths = [i * step for i in range(num_points)]
-
-                resampled_x, resampled_y = [], []
-                j = 0
-                for t_len in target_lengths:
-                    while j < len(distances) - 1 and distances[j + 1] < t_len:
-                        j += 1
-                    ratio = (t_len - distances[j]) / (distances[j + 1] - distances[j])
-                    x_interp = x_list[j] + ratio * (x_list[j + 1] - x_list[j])
-                    y_interp = y_list[j] + ratio * (y_list[j + 1] - y_list[j])
-                    resampled_x.append(x_interp)
-                    resampled_y.append(y_interp)
-
-                return resampled_x, resampled_y
-
-            resXpos, resY = resample_curve(raw_x_pos, raw_y)
-            resXneg, _ = resample_curve(raw_x_neg, raw_y)
-
-            self.refXpos = resXpos
-            self.refXneg = resXneg
-            self.refY = resY
-
-            # Convert to screen coords
-            origin_x = self.posScreen.centerx
-            origin_y = self.posScreen.centery
-            scale_x = self.meters_to_pixels_x / 2
-            scale_y = self.meters_to_pixels_y / 2
-
-            for x, y in zip(resXpos, resY):
-                px = origin_x + x * scale_x  # <-- changed sign to +
-                py = origin_y - y * scale_y  # <-- also fixed y direction
-                self.curve_points_pos.append((px, py))
-
-            for x, y in zip(resXneg, resY):
-                px = origin_x + x * scale_x  # this stays same if x is negative
-                py = origin_y - y * scale_y
-                self.curve_points_neg.append((px, py))
-
-            # Send to RefGen: 4 segments for looping
-            self.refgen.setRefPoints(self.refXpos, self.refXneg, self.refY)
+    def draw_refCurve(self):
+        self.xref_buffer, self.yref_buffer = self.refgen.getXYBuffer()
+        # Convert to screen coords
+        origin_x = self.posScreen.centerx
+        origin_y = self.posScreen.centery
+        scale_x = self.meters_to_pixels_x / 2
+        scale_y = self.meters_to_pixels_y / 2
+        for x, y in zip(self.xref_buffer, self.yref_buffer):
+            px = origin_x + x * scale_x
+            py = origin_y - y * scale_y
+            self.curve_points_pos.append((px, py))
 
         # Draw
         if len(self.curve_points_pos) > 1:
             pygame.draw.lines(self.screen, self.blue, False, self.curve_points_pos, 2)
-        if len(self.curve_points_neg) > 1:
-            pygame.draw.lines(self.screen, self.blue, False, self.curve_points_neg, 2)
-
 
     def update_ref_pos(self, x, y):
         origin_x = self.posScreen.centerx
@@ -305,10 +231,9 @@ class GUI(threading.Thread):
         graph_width = self.width - graph_x - padding
         graph_height = self.posScreen.height
 
-        # Adjust resolution
-        if self.errorHistoryMax != graph_width:
-            self.errorHistoryMax = graph_width
-            self.errorHistory = self.errorHistory[-graph_width:]
+        # Trim history to the last 300 values
+        if len(self.errorHistory) > self.errorHistoryMax:
+            self.errorHistory = self.errorHistory[-self.errorHistoryMax:]
 
         # Draw background
         pygame.draw.rect(self.screen, self.gray, (graph_x, graph_y, graph_width, graph_height), border_radius=10)
@@ -317,22 +242,55 @@ class GUI(threading.Thread):
         base_y = graph_y + graph_height
         pygame.draw.line(self.screen, (100, 100, 100), (graph_x, base_y), (graph_x + graph_width, base_y), 1)
 
+        # === Y-Axis with ticks and labels ===
+        num_ticks = 5
+        for i in range(num_ticks + 1):
+            error_value = i / num_ticks  # From 0.0 to 1.0
+            y = graph_y + graph_height - int(error_value * graph_height)
+
+            # Tick mark
+            pygame.draw.line(self.screen, self.black, (graph_x - 5, y), (graph_x, y), 1)
+
+            # Label
+            label_surface = self.font.render(f"{error_value:.1f}", True, self.black)
+            self.screen.blit(label_surface, (graph_x - 35, y - 6))
+
+            # Optional grid line
+            pygame.draw.line(self.screen, (220, 220, 220), (graph_x, y), (graph_x + graph_width, y), 1)
+
         # Plot error line
         if len(self.errorHistory) > 1:
-            max_display_error = 1.0  # Adjust if your error can exceed 1
+            max_display_error = 1.0
             step_x = graph_width / len(self.errorHistory)
             points = []
             for i, err in enumerate(self.errorHistory):
                 x = graph_x + int(i * step_x)
-                # Scale to fit graph height (higher error = taller line)
                 clamped_err = min(err, max_display_error)
                 y = base_y - int(clamped_err / max_display_error * graph_height)
                 points.append((x, y))
             pygame.draw.lines(self.screen, (255, 0, 0), False, points, 2)
 
-        # Label
+        # Label for axis
         label = self.font.render("X Error (0 to 1)", True, self.black)
         self.screen.blit(label, (graph_x + 10, graph_y + 10))
+
+        # === Show average error after each full loop ===
+        try:
+            avg_error = self.pid.getAverageError()
+            avg_x_error = self.pid.getAverageXError()
+            avg_y_error = self.pid.getAverageYError()
+
+            avg_label = self.font.render(f"Avg Dist Error: {avg_error:.3f}", True, self.black)
+            self.screen.blit(avg_label, (graph_x + 10, graph_y + graph_height + 10))
+
+            avg_x_label = self.font.render(f"Avg X Error: {avg_x_error:.3f}", True, self.black)
+            self.screen.blit(avg_x_label, (graph_x + 10, graph_y + graph_height + 30))
+
+            avg_y_label = self.font.render(f"Avg Y Error: {avg_y_error:.3f}", True, self.black)
+            self.screen.blit(avg_y_label, (graph_x + 10, graph_y + graph_height + 50))
+        except AttributeError:
+            pass
+
             
     def stop(self):
         """Stops the GUI thread."""

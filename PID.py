@@ -8,17 +8,28 @@ r = 0.028 * 0.45 / 18  # Wheel radius (meters)
 R = 0.16               # Distance from center to wheels (meters)
 
 # Proportional and Integral Gains
-KpX = 0.7
-KpY = 0.7
-Kptheta = 0.7
+KpX = 3.5
+KpY = 3.0
+Kptheta = 3.0
 
-KiX = 0.05
-KiY = 0.05
-Kitheta = 0.02
+KiX = 0.08
+KiY = 0.08
+Kitheta = 0.2
 
-KdX = 0.1
-KdY = 0.1
-Kdtheta = 0.05
+KdX = 0.8
+KdY = 0.8
+Kdtheta = 0.01
+
+#Kpx = 3.5, KpY = 3.0, Kptheta = 3.0, KiX = 0.13, KiY = 0.13, Kitheta = 0.2, KdX = 0.7, KdY = 0.7, Kdtheta = 0.01 -> AVGDistError:0.130m
+#Kpx = 3.0, KpY = 2.7, Kptheta = 3.0, KiX = 0.13, KiY = 0.13, Kitheta = 0.2, KdX = 0.5, KdY = 0.5, Kdtheta = 0.01 -> AVGDistError:0.115m
+#Kpx = 3.0, KpY = 2.7, Kptheta = 3.0, KiX = 0.15, KiY = 0.15, Kitheta = 0.2, KdX = 0.5, KdY = 0.5, Kdtheta = 0.01 -> AVGDistError:0.130m
+#Kpx = 3.0, KpY = 2.7, Kptheta = 3.0, KiX = 0.10, KiY = 0.10, Kitheta = 0.2, KdX = 0.5, KdY = 0.5, Kdtheta = 0.01 -> AVGDistError:0.120m
+#Kpx = 3.5, KpY = 3.0, Kptheta = 3.0, KiX = 0.07, KiY = 0.07, Kitheta = 0.2, KdX = 1.0, KdY = 1.0, Kdtheta = 0.01 -> AVGDistError:0.110m
+#Kpx = 3.2, KpY = 2.8, Kptheta = 3.0, KiX = 0.08, KiY = 0.08, Kitheta = 0.2, KdX = 1.2, KdY = 1.2, Kdtheta = 0.01 -> AVGDistError:0.130m
+
+#Kpx = 3.5, KpY = 3.0, Kptheta = 3.0, KiX = 0.08, KiY = 0.08, Kitheta = 0.2, KdX = 0.8, KdY = 0.8, Kdtheta = 0.01 -> AVGDistError:0.110m <--
+
+#Kpx = 3.5, KpY = 3.0, Kptheta = 2.5, KiX = 0.08, KiY = 0.08, Kitheta = 0.2, KdX = 0.8, KdY = 0.8, Kdtheta = 0.01 -> AVGDistError:0.110m
 
 
 
@@ -69,6 +80,7 @@ class PID(threading.Thread):
         super().__init__()
         self.host = "192.168.0.105"  # Define host inside the thread class
         self.port = 9998             # Define port inside the thread class
+        self.refgen = refgen
         self.x_ref = 0
         self.y_ref = 0
         self.x = 0
@@ -80,12 +92,17 @@ class PID(threading.Thread):
         self.distError = 0
         self.angleError = 0
         self.prev_error = np.zeros(3)  # [prev_ex, prev_ey, prev_etheta]
+        self.dt = 0.1  # Control loop time step (seconds)
 
-
-        self.refgen = refgen
+        self.error_history = []
+        self.latest_avg_error = 0
+        self.x_error_history = []
+        self.y_error_history = []
+        self.last_refgen_index = self.refgen.getIndex()
 
     def run(self):
         with Connection(self.host, self.port) as bot:
+            next_time = time.time()
             while self.running:
                 # Get current state from robot
                 self.x = bot.get_x()
@@ -114,17 +131,59 @@ class PID(threading.Thread):
                 self.distError = np.sqrt((self.x_ref - self.x) ** 2 + (self.y_ref - self.y) ** 2)
                 self.angleError = self.theta_ref - self.theta
 
-                print("Wheel Speeds:", wheel_speeds)
-                print(f"x: {self.x:.2f}, y: {self.y:.2f}, theta: {np.rad2deg(self.theta):.2f}")
+                #print("Wheel Speeds:", wheel_speeds)
+                #print(f"x: {self.x:.2f}, y: {self.y:.2f}, theta: {np.rad2deg(self.theta):.2f}")
+
+                
+                currIndex = self.refgen.getIndex()
+                if currIndex != self.last_refgen_index:
+                    self.error_history.append(self.distError)
+                    self.x_error_history.append(abs(self.prev_error[0]))
+                    self.y_error_history.append(abs(self.prev_error[1]))
+
+                    # Keep history capped at 50
+                    if len(self.error_history) > 50:
+                        self.error_history.pop(0)
+                    if len(self.x_error_history) > 50:
+                        self.x_error_history.pop(0)
+                    if len(self.y_error_history) > 50:
+                        self.y_error_history.pop(0)
+
+                    self.last_refgen_index = currIndex
 
                 # Sleep to control loop rate
-                time.sleep(0.01)
+                # Control loop fixed time
+                next_time += self.dt
+                sleep_time = next_time - time.time()
+                if sleep_time > 0:
+                    time.sleep(sleep_time)
+                else:
+                    print(f"Warning: RefGen loop overran desired time by {-sleep_time} seconds")
+                    next_time = time.time()
 
     def getState(self):
         return self.x, self.y, self.theta
     
     def getErrors(self):
         return self.distError, self.angleError
+    
+    def getAverageError(self):
+        if len(self.error_history) >= 50:
+            return sum(self.error_history[-50:]) / 50
+        else:
+            return 0.0  # Not enough data yet
+        
+    def getAverageXError(self):
+        if len(self.x_error_history) >= 50:
+            return sum(self.x_error_history[-50:]) / 50
+        else:
+            return 0.0
+
+    def getAverageYError(self):
+        if len(self.y_error_history) >= 50:
+            return sum(self.y_error_history[-50:]) / 50
+        else:
+            return 0.0
 
     def stop(self):
         self.running = False
