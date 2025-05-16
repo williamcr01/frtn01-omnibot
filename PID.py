@@ -10,10 +10,17 @@ R = 0.16               # Distance from center to wheels (meters)
 # Proportional and Integral Gains
 KpX = 0.7
 KpY = 0.7
+Kptheta = 0.7
+
 KiX = 0.05
 KiY = 0.05
-Kptheta = 0.7
 Kitheta = 0.02
+
+KdX = 0.1
+KdY = 0.1
+Kdtheta = 0.05
+
+
 
 # Anti-windup limit
 INTEGRAL_LIMIT = 1.0
@@ -27,27 +34,34 @@ def inverse_kinematics(theta, xdot, ydot, thetadot):
     ])
     return J_inv @ np.array([xdot, ydot, thetadot])
 
-# Position Controller (PI)
-def position_control(x_ref, y_ref, theta_ref, x, y, theta, int_err):
+# Position Controller (PID)
+def position_control(x_ref, y_ref, theta_ref, x, y, theta, int_err, prev_err):
     # Compute error
     ex = x_ref - x
     ey = y_ref - y
     etheta = theta_ref - theta
+
+    # Derivative of error
+    dex = ex - prev_err[0]
+    dey = ey - prev_err[1]
+    detheta = etheta - prev_err[2]
 
     # Integrate error
     int_err[0] += ex
     int_err[1] += ey
     int_err[2] += etheta
 
-    # Clamp integral error to avoid windup
+    # Clamp integral error
     int_err = np.clip(int_err, -INTEGRAL_LIMIT, INTEGRAL_LIMIT)
 
-    # Compute control signal
-    xdot = KpX * ex + KiX * int_err[0]
-    ydot = KpY * ey + KiY * int_err[1]
-    thetadot = -(Kptheta * etheta + Kitheta * int_err[2])
+    # PID control signal
+    xdot = KpX * ex + KiX * int_err[0] + KdX * dex
+    ydot = KpY * ey + KiY * int_err[1] + KdY * dey
+    thetadot = -(Kptheta * etheta + Kitheta * int_err[2] + Kdtheta * detheta)
 
-    return xdot, ydot, thetadot, int_err
+    # Return also current error as new previous error
+    return xdot, ydot, thetadot, int_err, np.array([ex, ey, etheta])
+
 
 # Control Thread Class
 class PID(threading.Thread):
@@ -59,11 +73,14 @@ class PID(threading.Thread):
         self.y_ref = 0
         self.x = 0
         self.y = 0
+        self.theta = 0
         self.theta_ref = 0
         self.running = True
         self.integral_error = np.zeros(3)  # [int_x, int_y, int_theta]
         self.distError = 0
         self.angleError = 0
+        self.prev_error = np.zeros(3)  # [prev_ex, prev_ey, prev_etheta]
+
 
         self.refgen = refgen
 
@@ -81,8 +98,9 @@ class PID(threading.Thread):
                 self.theta_ref = refPoints[2]
 
                 # Compute velocity commands
-                xdot, ydot, thetadot, self.integral_error = position_control(
-                    self.x_ref, self.y_ref, self.theta_ref + np.radians(90), self.x, self.y, self.theta, self.integral_error
+                xdot, ydot, thetadot, self.integral_error, self.prev_error = position_control(
+                    self.x_ref, self.y_ref, self.theta_ref + np.radians(90),
+                self.x, self.y, self.theta, self.integral_error, self.prev_error
                 )
 
                 # Compute wheel speeds
@@ -110,4 +128,3 @@ class PID(threading.Thread):
 
     def stop(self):
         self.running = False
-        self.stop_event.set()

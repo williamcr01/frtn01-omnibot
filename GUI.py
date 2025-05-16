@@ -25,6 +25,7 @@ class GUI(threading.Thread):
         self.white = (255, 255, 255)
         self.gray = (200, 200, 200)
         self.blue = (100, 100, 255)
+        self.red = (255, 0, 0)
         self.font = pygame.font.Font(None, 24)
 
         #Position-Screen attributes
@@ -33,6 +34,7 @@ class GUI(threading.Thread):
         self.curve_points_neg = []
         self.size_factor = 0.5  # Default size factor
         self.refPos = (0, 0)  # Initialize reference position
+        self.statePos = (0, 0)  # Initialize state position
 
 
         self.refY = []
@@ -107,9 +109,10 @@ class GUI(threading.Thread):
                 refvect = self.refgen.getRefPoints()  # Get reference points from Refgen
                 statevect = self.pid.getState()  # Get state from PID
 
-                pygame.draw.circle(self.screen, self.red, statevect[0], statevect[1], 5)  # Draw current position
+                self.update_state_pos(statevect[0], statevect[1])  # Update state position based on input values
+                pygame.draw.circle(self.screen, self.red, self.statePos, 5)  # Draw current position
 
-                self.update_ref_pos(refvect[0], refvect[1], self.size_factor)  # Update reference position based on input values
+                self.update_ref_pos(refvect[0], refvect[1])  # Update reference position based on input values
                 pygame.draw.circle(self.screen, self.black, self.refPos, 5)  # Draw reference position
 
                 pygame.draw.rect(self.screen, self.gray, self.varScreen)  # Draw varScreen rectangle
@@ -269,10 +272,18 @@ class GUI(threading.Thread):
             pygame.draw.lines(self.screen, self.blue, False, self.curve_points_neg, 2)
 
 
-    def update_ref_pos(self, x, y, a):
+    def update_ref_pos(self, x, y):
         origin_x = self.posScreen.centerx
         origin_y = self.posScreen.centery
         self.refPos = (
+            int(origin_x + x * self.meters_to_pixels_x / 2),
+            int(origin_y - y * self.meters_to_pixels_y / 2)
+        )
+
+    def update_state_pos(self, x, y):
+        origin_x = self.posScreen.centerx
+        origin_y = self.posScreen.centery
+        self.statePos = (
             int(origin_x + x * self.meters_to_pixels_x / 2),
             int(origin_y - y * self.meters_to_pixels_y / 2)
         )

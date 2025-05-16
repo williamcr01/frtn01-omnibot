@@ -1,5 +1,6 @@
 import pygame
 import time
+import sys
 
 from GUI import GUI
 from RefGen import RefGen
@@ -54,8 +55,8 @@ def main():
     gui = GUI(refgen=refgen, pid=pid)
     
     refgen.start()
-    gui_thread = gui.start()
     pid.start()
+    gui_thread = gui.start()
     
 
 
@@ -64,6 +65,9 @@ def main():
         time.sleep(0.01)  # Prevents CPU overload
 
     gui_thread.join()  # Wait for the GUI thread to finish
+    pid.join()  # Wait for the PID thread to finish
+    refgen.join()  # Wait for the RefGen thread to finish
+    sys.exit(0)  # Exit the program
 
 if __name__ == "__main__":
     main()
