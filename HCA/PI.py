@@ -18,12 +18,12 @@ Kptheta = 1.2
 Kitheta = (0.4 + 1j) * 0
 
 # Proportional and Integral Gains HCA
-KpX_arr = [0.065, 0.325, 0.0]
-KpY_arr = [0.0525, 0.0125, 0.55]
-KiX_arr = [0.00015, 0.0725*np.exp(0.4j*np.pi), 0.0]
-KiY_arr = [0.0175, 0.0015, 0.1*np.exp(0.5j*np.pi)]
-KpTheta_arr = [0.0275, 0.0, 0.0]
-KiTheta_arr = [0.015, 0.0, 0.0]
+KpX_arr = [0.12, 0.8, 0.0]
+KpY_arr = [0.12, 0.0, 0.55*0]
+KiX_arr = [0.0, 0.1, 0.0]
+KiY_arr = [0.0, 0.0, 0.1*np.exp(0.5j*np.pi)*0]
+KpTheta_arr = [0.05, 0.0, 0.0]
+KiTheta_arr = [0.0, 0.0, 0.0]
 
 # Anti-windup limit
 INTEGRAL_LIMIT = 1.0

@@ -5,9 +5,9 @@ from PI import PI
 import numpy as np
 import sys
 
-dt_control = 0.25
-dt_refgen = 0.3
-num_points = 100
+dt_control = 0.4
+dt_refgen = 0.4
+num_points = 50
 period = dt_refgen*num_points
 H = 2
 N = round((dt_refgen*num_points)/dt_control)
