@@ -50,10 +50,11 @@ def hca_position_control_arr(
     ctrl_disp_y = KpY_arr * disp_y + KiY_arr * int_y
     ctrl_disp_theta = KpTheta_arr * disp_theta + KiTheta_arr * int_theta
 
-    # Assembler: convert to time-domain control signals
+    # Assembler
     H = len(disp_x) - 1
     harmonics = np.arange(H + 1)
 
+    # Double check all n are equal
     if n_x == n_y and n_x == n_theta:
         phase_vector = np.exp(1j * 2 * np.pi * harmonics * n_x / N)
 
@@ -71,7 +72,7 @@ def hca_position_control_arr(
 
     return xdot, ydot, thetadot, int_x, int_y, int_theta
 
-
+# Anti windup for HCA with comlex numbers
 def hca_anti_windup(integral_error):
 
     # Separate real and imaginary parts of the integral error
@@ -104,9 +105,8 @@ class PI(threading.Thread):
         self.angleError = 0
         self.dt = dt
         self.period = period
-        self.starterTimer = 0
+       
         self.dt_refgen = dt_refgen
-
         self.refgen = refgen
 
         # HCA params and init
@@ -118,6 +118,8 @@ class PI(threading.Thread):
         self.int_err_x = np.zeros(H + 1, dtype=complex)
         self.int_err_y = np.zeros(H + 1, dtype=complex)
         self.int_err_theta = np.zeros(H + 1, dtype=complex)
+
+        self.starterTimer = 0
         self.num_points = num_points
         self.count = 0
         self.error_arr_x = []

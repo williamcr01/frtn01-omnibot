@@ -60,7 +60,6 @@ def test():
     plt.show()
 
 def test_HCA():
-    # --- Parameters ---
     T = 1.0      # Period in seconds
     Ts = 0.05    # Sampling time
     N = int(T / Ts)
@@ -68,7 +67,7 @@ def test_HCA():
     duration = 2 * T
     t = np.arange(0, duration, Ts)
 
-    # --- Signals (x, y, theta) ---
+    # Signals (x, y, theta)
     x_signal = np.sin(1.1* 2 * np.pi * t) + 0.5 * np.sin(4 * np.pi * t)        # 1 Hz + 2 Hz
     y_signal = np.cos(2 * np.pi * t) + 0.3 * np.sin(6 * np.pi * t)        # 1 Hz + 3 Hz
     theta_signal = 0.8 * np.sin(2 * np.pi * t) + 0.4 * np.sin(8 * np.pi * t)  # 1 Hz + 4 Hz
@@ -77,14 +76,14 @@ def test_HCA():
     assembled_signals = {'x': [], 'y': [], 'theta': []}
     dispersions_histories = {}
 
-    # --- Initialize per-signal dispersers ---
+    # Initialize dispersers
     dispersers = {}
     for label in signals:
         buffer, dispersions, exp_factors, n = initialize_disperser(H, N)
         dispersers[label] = {'buffer': buffer, 'disp': dispersions, 'exp': exp_factors, 'n': n}
         dispersions_histories[label] = []
 
-    # --- Loop over time ---
+    # Loop over time
     for i in range(len(t)):
         # Update dispersers
         for label, signal in signals.items():
@@ -95,7 +94,7 @@ def test_HCA():
             )
             dispersions_histories[label].append(d['disp'].copy())
 
-        # Assemble using harmonic reconstruction
+        # Assemble
         n_val = dispersers['x']['n']  # all n values are assumed equal
         harmonics = np.arange(H + 1)
         phase_vector = np.exp(1j * 2 * np.pi * harmonics * n_val / N)
@@ -112,13 +111,13 @@ def test_HCA():
         assembled_signals['y'].append(ydot)
         assembled_signals['theta'].append(thetadot)
 
-    # --- Convert lists to arrays ---
+    # Convert lists to arrays
     for label in dispersions_histories:
         dispersions_histories[label] = np.array(dispersions_histories[label])
     for label in assembled_signals:
         assembled_signals[label] = np.array(assembled_signals[label])
 
-    # --- Plotting ---
+    # Plotting
     fig, axs = plt.subplots(3, 5, figsize=(18, 12), sharex=True)
     signal_labels = ['x', 'y', 'theta']
 
