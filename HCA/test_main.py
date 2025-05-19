@@ -7,16 +7,9 @@ import HCA as hca
 H = 5
 N = 40
 
-def main():
-    
-    #refgen = RefGen()
-    #refgen.OnOffInput()
-    
-    #pi = PI(refgen=refgen, N=N, H=H)
+# Test to simulate the HCA disperser and assembler
 
-    #refgen.start()
-    #time.sleep(1) # calculate buffer
-    #pi.start()
+def main():
 
     hca.test_HCA()
 

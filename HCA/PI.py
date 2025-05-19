@@ -8,15 +8,6 @@ import HCA as hca
 r = 0.028 * 0.45 / 18  # Wheel radius (meters)
 R = 0.16               # Distance from center to wheels (meters)
 
-# Proportional and Integral Gains
-phase = 60
-KpX = 1.2
-KpY = 1.2
-KiX = (0.4 * 1j) * 0
-KiY = (0.4 + 1j) * 0
-Kptheta = 1.2
-Kitheta = (0.4 + 1j) * 0
-
 # Proportional and Integral Gains HCA
 KpX_arr = [0.15, 0.3, 0.25]
 KpY_arr = [0.15, 0.25, 0.4]
@@ -37,28 +28,7 @@ def inverse_kinematics(theta, xdot, ydot, thetadot):
     ])
     return J_inv @ np.array([xdot, ydot, thetadot])
 
-# Position Controller (PI)
-def position_control(x_ref, y_ref, theta_ref, x, y, theta, int_err):
-    # Compute error
-    ex = x_ref - x
-    ey = y_ref - y
-    etheta = theta_ref - theta
-
-    # Integrate error
-    int_err[0] += ex
-    int_err[1] += ey
-    int_err[2] += etheta
-
-    # Clamp integral error to avoid windup
-    int_err = np.clip(int_err, -INTEGRAL_LIMIT, INTEGRAL_LIMIT)
-
-    # Compute control signal
-    xdot = KpX * ex + KiX * int_err[0]
-    ydot = KpY * ey + KiY * int_err[1]
-    thetadot = -(Kptheta * etheta + Kitheta * int_err[2])
-
-    return xdot, ydot, thetadot, int_err
-
+# Position control HCA and PI
 def hca_position_control_arr(
     disp_x, disp_y, disp_theta,           # Dispersion arrays (complex)
     int_x, int_y, int_theta,              # Integral state arrays (complex)
@@ -150,6 +120,8 @@ class PI(threading.Thread):
         self.int_err_theta = np.zeros(H + 1, dtype=complex)
         self.num_points = num_points
         self.count = 0
+        self.error_arr_x = []
+        self.error_arr_y = []
 
     def run(self):
         with Connection(self.host, self.port) as bot:
@@ -207,10 +179,14 @@ class PI(threading.Thread):
                     print(f"Warning: Control loop overran desired time by {-sleep_time} seconds")
                     next_time = time.time()
                 if self.count == self.num_points:
-                    print(f"Avg error X: {np.real(self.dispersions_x[0])}\nAvg error Y: {np.real(self.dispersions_y[0])}")
+                    print(f"Avg error X: {np.mean(self.error_arr_x)}\nAvg error Y: {np.mean(self.error_arr_y)}")
                     self.count = 0
+                    self.error_arr_x = []
+                    self.error_arr_y = []
                 else:
                     self.count += 1
+                    self.error_arr_x.append(e_x)
+                    self.error_arr_y.append(e_y)
 
     def getState(self):
         return self.x, self.y, self.theta
