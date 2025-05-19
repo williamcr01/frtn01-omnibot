@@ -12,8 +12,8 @@ class GUI(threading.Thread):
         self.running = False
         self.enterPressed = True
 
-        self.refgen = refgen  # Store the reference to refgen
-        self.pid = pid  # Store the reference to pid
+        self.refgen = refgen
+        self.pid = pid  
 
         self.clock = pygame.time.Clock()
 
@@ -46,7 +46,7 @@ class GUI(threading.Thread):
         self.refXneg = []
 
         self.meters_to_pixels_x = self.posScreen.width  # 1 meter wide
-        self.meters_to_pixels_y = self.posScreen.height  # 1 meter high§
+        self.meters_to_pixels_y = self.posScreen.height  # 1 meter high
 
         #Variables-Screen attributes
         self.varScreen = pygame.Rect(5, 500+10, 500, 250-15)  # Example position for the rectangle
@@ -299,14 +299,12 @@ class GUI(threading.Thread):
 
             self.running = False  # Set flag first
 
-            # Fill screen with black to visually indicate shutdown
+            # Fill screen with black
             self.screen.fill((0, 0, 0))
             pygame.display.flip()
 
-            # Process any remaining events to avoid crashes
             pygame.event.clear()
 
-            # Small delay to allow Pygame to process the shutdown
             pygame.time.delay(100)
 
             # Quit Pygame

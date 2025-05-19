@@ -7,18 +7,19 @@ from omnibot.tcp import Connection
 r = 0.028 * 0.45 / 18  # Wheel radius (meters)
 R = 0.16               # Distance from center to wheels (meters)
 
+
 # Proportional and Integral Gains
-KpX = 3.5
-KpY = 3.0
-Kptheta = 3.0
+KpX = 3
+KpY = 3
+Kptheta = 3
 
-KiX = 0.08
-KiY = 0.08
-Kitheta = 0.2
+KiX = 0.08#KpX*(1/(0.5*Tu))
+KiY = 0.08#KpX*(1/(0.5*Tu))
+Kitheta = 0.08#
 
-KdX = 0.8
-KdY = 0.8
-Kdtheta = 0.01
+KdX = 0.8#KpX*0.125*Tu
+KdY = 0.8#KpX*0.125*Tu
+Kdtheta = 0.01#KpX*0.125*Tu
 
 #Kpx = 3.5, KpY = 3.0, Kptheta = 3.0, KiX = 0.13, KiY = 0.13, Kitheta = 0.2, KdX = 0.7, KdY = 0.7, Kdtheta = 0.01 -> AVGDistError:0.130m
 #Kpx = 3.0, KpY = 2.7, Kptheta = 3.0, KiX = 0.13, KiY = 0.13, Kitheta = 0.2, KdX = 0.5, KdY = 0.5, Kdtheta = 0.01 -> AVGDistError:0.115m

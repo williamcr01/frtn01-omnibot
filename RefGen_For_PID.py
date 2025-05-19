@@ -3,7 +3,7 @@ import time
 import numpy as np
 
 class RefGen(threading.Thread):
-    def __init__(self, amplitude=0.5, frequency=1.0, dt=0.4, num_points=50):
+    def __init__(self, amplitude=0.5, frequency=1.0, dt=0.4/200, num_points=1000):
         super().__init__()
         self.running = True
         self.updateFlag = False
