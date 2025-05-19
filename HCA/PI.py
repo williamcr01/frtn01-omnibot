@@ -18,11 +18,11 @@ Kptheta = 1.2
 Kitheta = (0.4 + 1j) * 0
 
 # Proportional and Integral Gains HCA
-KpX_arr = [0.12, 0.8, 0.0]
-KpY_arr = [0.12, 0.0, 0.55*0]
-KiX_arr = [0.0, 0.1, 0.0]
-KiY_arr = [0.0, 0.0, 0.1*np.exp(0.5j*np.pi)*0]
-KpTheta_arr = [0.05, 0.0, 0.0]
+KpX_arr = [0.15, 0.3, 0.25]
+KpY_arr = [0.15, 0.25, 0.4]
+KiX_arr = [0.0, 0.0145 + 0.0525j, 0.005]
+KiY_arr = [0.0, 0.005, 0.013+ 0.051j]
+KpTheta_arr = [0.05, 0.1, 0.1]
 KiTheta_arr = [0.0, 0.0, 0.0]
 
 # Anti-windup limit
@@ -119,7 +119,7 @@ def hca_anti_windup(integral_error):
 
 # Control Thread Class
 class PI(threading.Thread):
-    def __init__(self, refgen, N, H, dt, period, dt_refgen):
+    def __init__(self, refgen, N, H, dt, period, dt_refgen, num_points):
         super().__init__()
         self.host = "192.168.0.105"  # Define host inside the thread class
         self.port = 9998             # Define port inside the thread class
@@ -148,6 +148,8 @@ class PI(threading.Thread):
         self.int_err_x = np.zeros(H + 1, dtype=complex)
         self.int_err_y = np.zeros(H + 1, dtype=complex)
         self.int_err_theta = np.zeros(H + 1, dtype=complex)
+        self.num_points = num_points
+        self.count = 0
 
     def run(self):
         with Connection(self.host, self.port) as bot:
@@ -204,6 +206,11 @@ class PI(threading.Thread):
                 else:
                     print(f"Warning: Control loop overran desired time by {-sleep_time} seconds")
                     next_time = time.time()
+                if self.count == self.num_points:
+                    print(f"Avg error X: {np.real(self.dispersions_x[0])}\nAvg error Y: {np.real(self.dispersions_y[0])}")
+                    self.count = 0
+                else:
+                    self.count += 1
 
     def getState(self):
         return self.x, self.y, self.theta

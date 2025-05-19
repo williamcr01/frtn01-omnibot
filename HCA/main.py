@@ -1,9 +1,12 @@
 import time
 import matplotlib.pyplot as plt
-from RefGen_For_PID import RefGen
+import matplotlib
+matplotlib.use('Qt5Agg')
+from RefGen_buffer import RefGen
 from PI import PI
 import numpy as np
 import sys
+from threading import Thread
 
 dt_control = 0.4
 dt_refgen = 0.4
@@ -14,17 +17,7 @@ N = round((dt_refgen*num_points)/dt_control)
 
 H_parts = H + 1
 
-def main():
-    
-    refgen = RefGen(dt=dt_refgen, num_points=num_points)
-    refgen.OnOffInput()
-    
-    pi = PI(refgen=refgen, N=N, H=H, dt=dt_control, period=period, dt_refgen=dt_refgen)
-
-    refgen.start()
-    time.sleep(1) # calculate buffer
-    pi.start()
-
+def graphs(pi, refgen):
     fig, axs = plt.subplots(4, 2, sharex=True, figsize=(12, 8))
     (ax1, ax2), (ax3, ax4), (ax5, ax6), (ax7, ax8) = axs
 
@@ -128,7 +121,22 @@ def main():
         pi.stop()
         refgen.stop()
         plt.close('all')
-        sys.exit(0)       
+        sys.exit(0)
+
+def main():
+    
+    refgen = RefGen(dt=dt_refgen, num_points=num_points)
+    refgen.OnOffInput()
+    
+    pi = PI(
+        refgen=refgen, N=N, H=H, dt=dt_control, period=period, dt_refgen=dt_refgen, num_points=num_points
+        )
+
+    refgen.start()
+    time.sleep(1) # calculate buffer
+    pi.start()       
+
+    graphs(pi, refgen)
 
 if __name__ == "__main__":
     main()
