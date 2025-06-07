@@ -27,12 +27,8 @@ Kdtheta = 0.01#KpX*0.125*Tu
 #Kpx = 3.0, KpY = 2.7, Kptheta = 3.0, KiX = 0.10, KiY = 0.10, Kitheta = 0.2, KdX = 0.5, KdY = 0.5, Kdtheta = 0.01 -> AVGDistError:0.120m
 #Kpx = 3.5, KpY = 3.0, Kptheta = 3.0, KiX = 0.07, KiY = 0.07, Kitheta = 0.2, KdX = 1.0, KdY = 1.0, Kdtheta = 0.01 -> AVGDistError:0.110m
 #Kpx = 3.2, KpY = 2.8, Kptheta = 3.0, KiX = 0.08, KiY = 0.08, Kitheta = 0.2, KdX = 1.2, KdY = 1.2, Kdtheta = 0.01 -> AVGDistError:0.130m
-
 #Kpx = 3.5, KpY = 3.0, Kptheta = 3.0, KiX = 0.08, KiY = 0.08, Kitheta = 0.2, KdX = 0.8, KdY = 0.8, Kdtheta = 0.01 -> AVGDistError:0.110m <--
-
 #Kpx = 3.5, KpY = 3.0, Kptheta = 2.5, KiX = 0.08, KiY = 0.08, Kitheta = 0.2, KdX = 0.8, KdY = 0.8, Kdtheta = 0.01 -> AVGDistError:0.110m
-
-
 
 # Anti-windup limit
 INTEGRAL_LIMIT = 1.0
